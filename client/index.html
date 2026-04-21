@@ -3,20 +3,23 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ZeroEngine Phase 3</title>
+    <title>ZeroEngine — browser-native engine powered by JSPP</title>
+    <meta name="description" content="A Rust + WebGPU game engine you can script with JSPP — JavaScript syntax, C++ performance.">
     <style>
         :root {
-            color-scheme: light;
+            color-scheme: dark;
             font-family: "Trebuchet MS", "Segoe UI", sans-serif;
             background:
-                radial-gradient(circle at top left, rgba(255, 127, 80, 0.35), transparent 30%),
-                radial-gradient(circle at top right, rgba(78, 197, 201, 0.26), transparent 32%),
+                radial-gradient(circle at top left,  rgba(255, 127, 80, 0.32), transparent 32%),
+                radial-gradient(circle at top right, rgba(78, 197, 201, 0.24), transparent 34%),
                 linear-gradient(180deg, #050913 0%, #0d1524 45%, #101a2a 100%);
             color: #f3f7ff;
         }
 
+        *  { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
+
         body {
-            margin: 0;
             min-height: 100vh;
             overflow: hidden;
         }
@@ -27,20 +30,43 @@
             width: 100vw;
             height: 100vh;
             display: block;
+            cursor: crosshair;
         }
 
+        /* --- Click ripple overlay ------------------------------------- */
+        #ripple-layer {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .ripple {
+            position: absolute;
+            border: 2px solid rgba(154, 227, 223, 0.9);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            animation: ripple-grow 0.7s ease-out forwards;
+            box-shadow: 0 0 24px rgba(154, 227, 223, 0.55);
+        }
+        @keyframes ripple-grow {
+            0%   { transform: translate(-50%, -50%) scale(0);   opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(7);   opacity: 0; }
+        }
+
+        /* --- HUD / info card ------------------------------------------ */
         .hud {
             position: fixed;
             top: 1.5rem;
             left: 1.5rem;
-            width: min(30rem, calc(100vw - 3rem));
-            padding: 1.25rem 1.4rem;
+            width: min(34rem, calc(100vw - 3rem));
+            padding: 1.25rem 1.4rem 1.1rem;
             border: 1px solid rgba(255, 255, 255, 0.16);
             border-radius: 1.25rem;
-            background: rgba(8, 13, 24, 0.68);
+            background: rgba(8, 13, 24, 0.72);
             backdrop-filter: blur(18px);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
-            pointer-events: none;
+            -webkit-backdrop-filter: blur(18px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            z-index: 10;
         }
 
         .badge {
@@ -57,57 +83,210 @@
         }
 
         h1 {
-            margin: 0.85rem 0 0.4rem;
-            font-size: clamp(2rem, 4vw, 3.2rem);
-            line-height: 0.98;
+            margin: 0.85rem 0 0.25rem;
+            font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+            line-height: 1.02;
+        }
+        .tagline {
+            margin: 0.2rem 0 0.9rem;
+            color: rgba(243, 247, 255, 0.78);
+            font-size: 0.95rem;
         }
 
-        p {
-            margin: 0.35rem 0;
-            line-height: 1.55;
-            color: rgba(243, 247, 255, 0.82);
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.45rem 0.9rem;
+            margin: 0.4rem 0 0.85rem;
+            font-size: 0.83rem;
+            color: rgba(243, 247, 255, 0.86);
+        }
+        .features span::before {
+            content: "▸ ";
+            color: #9ae3df;
+            margin-right: 0.15rem;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .actions a, .actions button {
+            font-family: inherit;
+            font-size: 0.86rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 0.6rem;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(255, 255, 255, 0.06);
+            color: #f3f7ff;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .actions a:hover, .actions button:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.28);
+        }
+        .actions a.primary {
+            background: rgba(78, 197, 201, 0.22);
+            border-color: rgba(78, 197, 201, 0.45);
+            color: #baf3ef;
+        }
+        .actions a.primary:hover {
+            background: rgba(78, 197, 201, 0.34);
         }
 
         #status {
-            margin-top: 0.9rem;
-            font-weight: 600;
+            margin-top: 0.75rem;
+            font-size: 0.82rem;
             color: #9ae3df;
+            opacity: 0.85;
         }
 
-        @media (max-width: 720px) {
-            .hud {
-                top: 1rem;
-                left: 1rem;
-                width: calc(100vw - 2rem);
-            }
+        /* --- Click hint floating bottom-right ------------------------- */
+        .click-hint {
+            position: fixed;
+            bottom: 1.25rem;
+            right: 1.25rem;
+            padding: 0.55rem 0.9rem;
+            border-radius: 999px;
+            background: rgba(8, 13, 24, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            font-size: 0.78rem;
+            letter-spacing: 0.04em;
+            color: rgba(243, 247, 255, 0.82);
+            z-index: 10;
+            pointer-events: none;
+            animation: hint-pulse 2.4s ease-in-out infinite;
+        }
+        @keyframes hint-pulse {
+            0%, 100% { transform: translateY(0);       opacity: 0.85; }
+            50%      { transform: translateY(-3px);    opacity: 1;    }
+        }
+
+        /* --- Code sample card ---------------------------------------- */
+        .sample {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 1.5rem;
+            width: min(26rem, calc(100vw - 3rem));
+            padding: 0.9rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 1rem;
+            background: rgba(8, 13, 24, 0.72);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            font-family: "Consolas", "Menlo", monospace;
+            font-size: 0.76rem;
+            line-height: 1.55;
+            color: #dfe6ef;
+            z-index: 10;
+        }
+        .sample .sample-title {
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #9ae3df;
+            margin-bottom: 0.45rem;
+        }
+        .sample pre { margin: 0; white-space: pre-wrap; }
+        .kw { color: #ff9ec0; }
+        .fn { color: #ffcf8d; }
+        .str { color: #9ee39a; }
+        .num { color: #baf3ef; }
+        .com { color: rgba(243, 247, 255, 0.45); font-style: italic; }
+
+        @media (max-width: 860px) {
+            .sample { display: none; }
+            .hud { width: calc(100vw - 2rem); top: 1rem; left: 1rem; padding: 1rem; }
+            .features { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <canvas id="engine-canvas"></canvas>
-    <div class="hud">
-        <div class="badge">Phase 3 Imported Mesh</div>
+    <div id="ripple-layer" aria-hidden="true"></div>
+
+    <section class="hud">
+        <span class="badge">Live Demo</span>
         <h1>ZeroEngine</h1>
-        <p>Browser-native game engine prototype.</p>
-        <p>The current milestone replaces the procedural cube with a GLB-backed mesh loaded through the engine asset path.</p>
-        <p id="status">Loading WebAssembly runtime. Click the scene to capture the mouse when the model appears.</p>
-    </div>
+        <p class="tagline">
+            A browser-native game engine written in Rust, running on WebGPU via WebAssembly —
+            scriptable with <strong>JSPP</strong>, a language with JavaScript syntax and C++ performance.
+        </p>
+
+        <div class="features">
+            <span>Rust + WebGPU renderer</span>
+            <span>ECS architecture (<code>bevy_ecs</code>)</span>
+            <span>WASM client, native server</span>
+            <span>JSPP scripting bridge</span>
+            <span>2D overlay draw API</span>
+            <span>Shared types, no duplication</span>
+        </div>
+
+        <div class="actions">
+            <a class="primary" href="./jspp.html">🎮 Open JSPP Playground →</a>
+            <a href="https://github.com/StefanDjurkic/jspp" target="_blank" rel="noopener">JSPP on GitHub</a>
+            <a href="https://github.com/StefanDjurkic/zeroengine" target="_blank" rel="noopener">ZeroEngine on GitHub</a>
+        </div>
+
+        <div id="status">Booting WebAssembly runtime…</div>
+    </section>
+
+    <aside class="sample">
+        <div class="sample-title">JSPP — runs in the playground</div>
+<pre><span class="com">// JavaScript syntax, C++ performance.</span>
+<span class="kw">function</span> <span class="fn">draw</span>(): <span class="kw">void</span> {
+    <span class="fn">clear</span>(<span class="num">20</span>, <span class="num">25</span>, <span class="num">40</span>);
+    <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; <span class="num">12</span>; i++) {
+        <span class="fn">drawCircle</span>(<span class="num">200</span>+i*<span class="num">30</span>, <span class="num">180</span>, <span class="num">14</span>,
+                   <span class="num">80</span>+i*<span class="num">12</span>, <span class="num">200</span>, <span class="num">255</span>);
+    }
+    <span class="fn">print</span>(<span class="str">"Hello from JSPP!"</span>);
+}
+<span class="fn">draw</span>();</pre>
+    </aside>
+
+    <div class="click-hint">Click the scene — the engine is listening</div>
+
     <script type="module">
         const status = document.getElementById("status");
+        const rippleLayer = document.getElementById("ripple-layer");
         const assetVersion = "__ZEROENGINE_ASSET_VERSION__";
 
+        // --- Boot wasm engine -------------------------------------------------
         try {
             const moduleUrl = new URL(`./pkg/zero_engine_client.js?v=${assetVersion}`, import.meta.url);
-            const wasmUrl = new URL(`./pkg/zero_engine_client_bg.wasm?v=${assetVersion}`, import.meta.url);
+            const wasmUrl   = new URL(`./pkg/zero_engine_client_bg.wasm?v=${assetVersion}`, import.meta.url);
             const { default: init } = await import(moduleUrl.href);
-
             await init({ module_or_path: wasmUrl });
+            status.textContent = "Engine running — rendering a WebGPU-driven 3D mesh.";
         } catch (error) {
             console.error("Failed to start ZeroEngine", error);
-            if (status) {
-                status.textContent = "Startup failed. See the console for details.";
-            }
+            status.textContent = "Startup failed — try a WebGPU-capable browser (Chrome/Edge ≥ 113).";
         }
+
+        // --- Click ripple: proof the page is interactive ---------------------
+        function spawnRipple(x, y) {
+            const el = document.createElement("div");
+            el.className = "ripple";
+            el.style.left = x + "px";
+            el.style.top  = y + "px";
+            const size = 28 + Math.random() * 22;
+            el.style.width  = size + "px";
+            el.style.height = size + "px";
+            rippleLayer.appendChild(el);
+            setTimeout(() => el.remove(), 750);
+        }
+        window.addEventListener("pointerdown", (e) => {
+            // Ignore clicks on HUD elements so buttons still work.
+            if (e.target.closest(".hud") || e.target.closest(".sample")) return;
+            spawnRipple(e.clientX, e.clientY);
+        }, { passive: true });
     </script>
 </body>
 </html>
