@@ -1,2 +1,0 @@
-Recursive fib(10): 55
-Iterative fib(10): 55

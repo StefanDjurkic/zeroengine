@@ -50,30 +50,6 @@ jobs:
       - name: Build client (wasm-pack, --target web)
         run: wasm-pack build client --release --target web
 
-      - name: Setup emsdk (for compile-pipeline wasm demos)
-        uses: mymindstorm/setup-emsdk@v14
-        with:
-          version: 3.1.64
-          actions-cache-folder: emsdk-cache-pages
-
-      - name: Compile demos/compiled/*/generated.cpp to wasm
-        run: |
-          set -e
-          for demo_dir in demos/compiled/*/; do
-              name="$(basename "$demo_dir")"
-              [[ -f "$demo_dir/generated.cpp" ]] || continue
-              echo "=== $name (wasm) ==="
-              emcc -std=c++20 -O2 \
-                  "$demo_dir/generated.cpp" \
-                  -o "$demo_dir/demo.mjs" \
-                  -sMODULARIZE=1 \
-                  -sEXPORT_ES6=1 \
-                  -sENVIRONMENT=web,worker \
-                  -sINVOKE_RUN=0 \
-                  -sEXPORTED_RUNTIME_METHODS=callMain
-              ls -la "$demo_dir"
-          done
-
       - name: Stage site
         run: |
           set -e
@@ -89,9 +65,6 @@ jobs:
           cp _jspp/prototype/jspp.mjs         _site/prototype/
           cp _jspp/prototype/typechecker.mjs  _site/prototype/
           cp -r client/pkg/*              _site/pkg/
-          # Ship the compiled demos so the playground can fetch source/cpp/stdout.
-          mkdir -p _site/demos
-          cp -r demos/compiled            _site/demos/
           # GitHub Pages sometimes serves .wasm with the wrong MIME type.
           echo "/*.wasm  application/wasm" > _site/_headers
           # Disable Jekyll so files starting with _ are served verbatim.

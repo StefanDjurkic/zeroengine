@@ -1,6 +1,0 @@
-// Hello World in JSPP
-
-function main(): int {
-    console.log("Hello, World!");
-    return 0;
-}

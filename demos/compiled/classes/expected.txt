@@ -1,4 +1,0 @@
-Hero HP: 100
-Goblin attacks Hero for 5 damage!
-Hero HP: 100
-Score: 500
