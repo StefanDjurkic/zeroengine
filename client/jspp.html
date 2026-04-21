@@ -181,7 +181,7 @@
             <span>JS++ Editor</span>
             <span class="badge">ZeroEngine</span>
         </div>
-        <textarea id="code-editor" spellcheck="false" placeholder="// Write JSPP code here and press Run (Ctrl+Enter)
+        <textarea id="code-editor" spellcheck="false">// Write JSPP code here and press Run (Ctrl+Enter)
 // Available: drawRect, drawCircle, drawLine, clear, print
 
 clear(30, 30, 40);
@@ -192,12 +192,12 @@ drawCircle(300, 200, 60, 80, 200, 255);
 drawLine(10, 10, 400, 300, 255, 255, 100);
 
 // Loops, variables, everything JSPP supports
-for (let i = 0; i &lt; 8; i++) {
+for (let i = 0; i &lt; 8; i = i + 1) {
     drawCircle(80 + i * 40, 320, 12, 80 + i * 20, 200, 255);
 }
 
-print(&quot;Hello from JSPP!&quot;);
-"></textarea>
+print("Hello from JSPP!");
+</textarea>
         <div class="toolbar">
             <button class="primary" id="btn-run" title="Ctrl+Enter">&#9654; Run</button>
             <button id="btn-clear">Clear Output</button>

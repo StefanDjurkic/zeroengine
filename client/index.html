@@ -41,17 +41,25 @@
     .btn:hover { transform:translateY(-1px); border-color:var(--accent); }
     .btn.primary { background:linear-gradient(135deg,var(--accent),var(--accent-2)); border:none; color:#0b0f17; font-weight:700; }
 
-    #jspp-panel { position:fixed; top:20px; right:20px; width:min(480px, 38vw); z-index:5; }
-    #jspp-panel .card { padding:0; overflow:hidden; }
+    #jspp-panel { position:fixed; top:20px; right:20px; width:min(520px, 42vw); z-index:5;
+        display:flex; flex-direction:column; max-height:calc(100vh - 40px); }
+    #jspp-panel .card { padding:0; overflow:hidden; display:flex; flex-direction:column; flex:1 1 auto; min-height:0; }
     .panel-head { display:flex; justify-content:space-between; align-items:center;
-        padding:10px 14px; border-bottom:1px solid var(--stroke); background:rgba(0,0,0,.25); }
+        padding:10px 14px; border-bottom:1px solid var(--stroke); background:rgba(0,0,0,.25); flex:0 0 auto; }
     .panel-head .title { font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
     .panel-head .badge { font-size:11px; color:var(--ok); display:flex; align-items:center; gap:6px; }
     .panel-head .badge .d { width:8px; height:8px; border-radius:50%; background:var(--ok); box-shadow:0 0 6px var(--ok); }
-    pre.code { margin:0; padding:14px 16px; font-family: 'Fira Code',Consolas,Monaco,monospace;
-        font-size:12px; line-height:1.55; color:#d6deeb; max-height:58vh; overflow:auto; white-space:pre; }
-    .kw { color:#c792ea; } .num { color:#f78c6c; } .str { color:#ecc48d; }
-    .fn { color:#82aaff; } .com { color:#637777; font-style:italic; }
+    .panel-head .badge.err { color: var(--err); }
+    .panel-head .badge.err .d { background: var(--err); box-shadow: 0 0 6px var(--err); }
+    textarea.code-input { flex:1 1 auto; min-height:220px; resize:none; margin:0; padding:14px 16px;
+        font-family:'Fira Code',Consolas,Monaco,monospace; font-size:12px; line-height:1.55;
+        color:#d6deeb; background:transparent; border:none; outline:none; tab-size:4; }
+    .panel-foot { display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--stroke);
+        background:rgba(0,0,0,.25); flex:0 0 auto; }
+    .panel-foot .hint-text { font-size:11px; color:var(--muted); align-self:center; margin-left:auto; }
+    #run-err { margin:0; padding:8px 16px; background:rgba(239,68,68,.12); color:#fecaca;
+        font-family:'Fira Code',Consolas,Monaco,monospace; font-size:11px; border-top:1px solid rgba(239,68,68,.35);
+        max-height:120px; overflow:auto; white-space:pre-wrap; display:none; flex:0 0 auto; }
 
     #hint { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
         z-index:5; padding:10px 16px; font-size:13px; color:var(--muted);
@@ -102,10 +110,16 @@
 <div id="jspp-panel">
     <div class="card">
         <div class="panel-head">
-            <span class="title">scene.jspp — driving the cube</span>
-            <span class="badge"><span class="d"></span> live</span>
+            <span class="title">scene.jspp — edit &amp; run</span>
+            <span class="badge" id="run-status"><span class="d"></span> live</span>
         </div>
-<pre class="code" id="code-view"></pre>
+        <textarea id="code-input" class="code-input" spellcheck="false" autocomplete="off"></textarea>
+        <pre id="run-err"></pre>
+        <div class="panel-foot">
+            <a class="btn primary" id="btn-run" href="#" style="padding:6px 14px;font-size:12px;">▶ Run (Ctrl+Enter)</a>
+            <a class="btn" id="btn-reset" href="#" style="padding:6px 12px;font-size:12px;">Reset</a>
+            <span class="hint-text">edits this JSPP program · drives the cube</span>
+        </div>
     </div>
 </div>
 
@@ -192,27 +206,14 @@ log("scene.jspp booted — JSPP is now driving the cube");
 <script type="module">
 import * as THREE from "three";
 
-const bootEl = document.getElementById("boot");
-const codeViewEl = document.getElementById("code-view");
+const bootEl     = document.getElementById("boot");
+const codeInput  = document.getElementById("code-input");
+const btnRun     = document.getElementById("btn-run");
+const btnReset   = document.getElementById("btn-reset");
+const runErrEl   = document.getElementById("run-err");
+const runStatus  = document.getElementById("run-status");
 const jsppSource = document.getElementById("jspp-source").textContent.trim();
-
-// --- Render JSPP source with tiny syntax highlighting ---
-function highlight(src) {
-    // escape
-    let s = src.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-    // comments (line)
-    s = s.replace(/(\/\/[^\n]*)/g, '<span class="com">$1</span>');
-    // strings
-    s = s.replace(/(&quot;[^&]*?&quot;|"[^"]*")/g, '<span class="str">$1</span>');
-    // keywords
-    s = s.replace(/\b(let|const|function|if|else|for|while|return|true|false|null)\b/g, '<span class="kw">$1</span>');
-    // numbers
-    s = s.replace(/\b(\d+(\.\d+)?)\b/g, '<span class="num">$1</span>');
-    // builtin calls we expose
-    s = s.replace(/\b(setRotation|setScale|setFaceColor|applyPalette|tick|onClick|log)\b(?=\s*\()/g, '<span class="fn">$1</span>');
-    return s;
-}
-codeViewEl.innerHTML = highlight(jsppSource);
+codeInput.value = jsppSource;
 
 // --- Three.js scene ---
 const canvas = document.getElementById("c");
@@ -248,30 +249,59 @@ cube.add(edges);
 
 // --- JSPP interpreter + builtins ---
 const jspp = await import("./prototype/jspp.mjs");
-const interp = new jspp.Interpreter({
-    onOutput: (line) => console.log("[jspp]", line)
-});
 
-const g = interp.global;
-g.define("setRotation", (x, y) => { cube.rotation.x = x; cube.rotation.y = y; });
-g.define("setScale",    (s)    => { cube.scale.setScalar(s); });
-g.define("setFaceColor",(i, r, g_, b) => {
-    const m = faceMats[i|0];
-    if (m) m.color.setRGB(r/255, g_/255, b/255);
-});
-g.define("log", (...args) => console.log("[jspp]", ...args));
+let interp = null;
+let jsppTick = null;
+let jsppOnClick = null;
 
-// Parse and run the JSPP source. This defines tick() and onClick() in the global env.
-try {
-    const ast = jspp.parseSource(jsppSource, "scene.jspp");
-    interp.run(ast);
-} catch (err) {
-    console.error("JSPP boot failed:", err);
-    bootEl.textContent = "JSPP boot failed: " + err.message;
+function installBuiltins(i) {
+    const g = i.global;
+    g.define("setRotation", (x, y) => { cube.rotation.x = Number(x) || 0; cube.rotation.y = Number(y) || 0; });
+    g.define("setScale",    (s)    => { cube.scale.setScalar(Number(s) || 1); });
+    g.define("setFaceColor",(idx, r, g_, b) => {
+        const m = faceMats[(idx|0) % 6];
+        if (m) m.color.setRGB((Number(r)||0)/255, (Number(g_)||0)/255, (Number(b)||0)/255);
+    });
+    g.define("log", (...args) => console.log("[jspp]", ...args));
 }
 
-const jsppTick    = g.vars.get("tick");
-const jsppOnClick = g.vars.get("onClick");
+function loadJsppSource(src) {
+    try {
+        const ast = jspp.parseSource(src, "scene.jspp");
+        interp = new jspp.Interpreter({ onOutput: (line) => console.log("[jspp]", line) });
+        installBuiltins(interp);
+        interp.run(ast);
+        jsppTick    = interp.global.vars.get("tick");
+        jsppOnClick = interp.global.vars.get("onClick");
+        runErrEl.style.display = "none";
+        runErrEl.textContent = "";
+        runStatus.classList.remove("err");
+        runStatus.innerHTML = '<span class="d"></span> live';
+        return true;
+    } catch (err) {
+        console.error("JSPP error:", err);
+        runErrEl.textContent = String(err && err.message ? err.message : err);
+        runErrEl.style.display = "block";
+        runStatus.classList.add("err");
+        runStatus.innerHTML = '<span class="d"></span> error';
+        return false;
+    }
+}
+
+loadJsppSource(jsppSource);
+
+function runFromEditor(e) { if (e) e.preventDefault(); loadJsppSource(codeInput.value); }
+btnRun.addEventListener("click", runFromEditor);
+btnReset.addEventListener("click", (e) => { e.preventDefault(); codeInput.value = jsppSource; loadJsppSource(jsppSource); });
+codeInput.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); runFromEditor(); }
+    if (e.key === "Tab") {
+        e.preventDefault();
+        const s = codeInput.selectionStart, en = codeInput.selectionEnd;
+        codeInput.value = codeInput.value.slice(0, s) + "    " + codeInput.value.slice(en);
+        codeInput.selectionStart = codeInput.selectionEnd = s + 4;
+    }
+});
 
 // --- Mouse drag / zoom / click (no pointer lock) ---
 let dragging = false, lastX = 0, lastY = 0;
@@ -281,21 +311,21 @@ const mouseNdc = new THREE.Vector2();
 let downX = 0, downY = 0;
 
 canvas.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
     dragging = true; lastX = e.clientX; lastY = e.clientY;
     downX = e.clientX; downY = e.clientY;
-    canvas.setPointerCapture(e.pointerId);
 });
-canvas.addEventListener("pointermove", (e) => {
+window.addEventListener("pointermove", (e) => {
     if (!dragging) return;
     manualRotY += (e.clientX - lastX) * 0.005;
     manualRotX += (e.clientY - lastY) * 0.005;
     lastX = e.clientX; lastY = e.clientY;
 });
-canvas.addEventListener("pointerup", (e) => {
+window.addEventListener("pointerup", (e) => {
+    if (!dragging) return;
     dragging = false;
-    try { canvas.releasePointerCapture(e.pointerId); } catch {}
-    // click detection: small movement
-    if (Math.hypot(e.clientX - downX, e.clientY - downY) < 5) {
+    // click detection: small movement + originated on canvas
+    if (e.target === canvas && Math.hypot(e.clientX - downX, e.clientY - downY) < 5) {
         mouseNdc.x = (e.clientX / innerWidth) * 2 - 1;
         mouseNdc.y = -(e.clientY / innerHeight) * 2 + 1;
         raycaster.setFromCamera(mouseNdc, camera);
@@ -304,6 +334,7 @@ canvas.addEventListener("pointerup", (e) => {
         }
     }
 });
+window.addEventListener("pointercancel", () => { dragging = false; });
 canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
     const r = camera.position.length();
@@ -328,7 +359,13 @@ function frame(now) {
 
     if (typeof jsppTick === "function") {
         try { jsppTick(now / 1000, dt); }
-        catch (err) { console.error("JSPP tick error:", err); }
+        catch (err) {
+            console.error("JSPP tick error:", err);
+            runErrEl.textContent = "tick: " + (err && err.message ? err.message : err);
+            runErrEl.style.display = "block";
+            runStatus.classList.add("err"); runStatus.innerHTML = '<span class="d"></span> error';
+            jsppTick = null;
+        }
     }
     // Apply user's drag on top of what JSPP set.
     cube.rotation.x += manualRotX; manualRotX = 0;
