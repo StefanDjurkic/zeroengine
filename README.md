@@ -1,7 +1,10 @@
 # ZeroEngine
 
 [![CI](https://github.com/StefanDjurkic/zeroengine/actions/workflows/ci.yml/badge.svg)](https://github.com/StefanDjurkic/zeroengine/actions/workflows/ci.yml)
+[![Deploy](https://github.com/StefanDjurkic/zeroengine/actions/workflows/pages.yml/badge.svg)](https://github.com/StefanDjurkic/zeroengine/actions/workflows/pages.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+**🎮 Live demo:** https://stefandjurkic.github.io/zeroengine/ — spins up the WebAssembly runtime and renders the 3D cube straight from the browser.
 
 A browser-native game engine prototype written in Rust, targeting WebAssembly + WebGPU via [`wgpu`](https://github.com/gfx-rs/wgpu). Client and server share a single Rust workspace so network messages, components, and constants are compile-time checked on both sides.
 
