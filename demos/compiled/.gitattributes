@@ -1,0 +1,6 @@
+# The compile-pipeline artifacts are verified byte-for-byte by CI on Linux.
+# Never let git touch their line endings on check-in or check-out.
+*.jspp    -text
+*.cpp     -text
+*.txt     -text
+*.sh      text eol=lf
