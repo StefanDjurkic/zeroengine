@@ -1,3 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JSPP Playground</title>
+<style>
+    :root {
+        --bg-0:#0b0f17; --bg-1:#121826; --panel:#1a2233; --stroke:#2a3347;
+        --text:#e5e7eb; --muted:#9ca3af; --accent:#22d3ee; --accent-2:#a78bfa;
+        --ok:#34d399; --err:#ef4444;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; height:100%; background:var(--bg-0);
+        color:var(--text); font-family: system-ui,-apple-system,Segoe UI,Roboto,sans-serif; overflow:hidden; }
+    body { display:grid; grid-template-columns: minmax(0,1fr) minmax(360px, 40vw); height:100vh; }
+    .view { position:relative; background:#050913; overflow:hidden;
+        display:flex; align-items:center; justify-content:center; padding:16px; }
+    #canvas { background:#0e131f; border:1px solid var(--stroke); border-radius:8px;
+        box-shadow: 0 10px 40px rgba(0,0,0,.5); max-width:100%; max-height:100%; }
+    #view-badge { position:absolute; top:12px; left:12px; font-size:11px;
+        color:var(--muted); background:rgba(17,22,35,.8); padding:6px 10px; border-radius:999px;
+        border:1px solid var(--stroke); letter-spacing:.05em; }
+    #view-badge .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+        background:var(--ok); box-shadow:0 0 6px var(--ok); margin-right:6px; vertical-align:middle; }
+    #back { position:absolute; top:12px; right:12px; font-size:12px; color:var(--text);
+        text-decoration:none; background:var(--panel); border:1px solid var(--stroke);
+        padding:6px 12px; border-radius:8px; }
+    #back:hover { border-color: var(--accent); }
+
+    .side { display:flex; flex-direction:column; border-left:1px solid var(--stroke);
+        background:var(--bg-1); min-width:0; }
+    .head { display:flex; align-items:center; justify-content:space-between; gap:10px;
+        padding:12px 16px; border-bottom:1px solid var(--stroke); background:rgba(0,0,0,.2); }
+    .head .title { font-size:13px; font-weight:700; color:#fff; }
+    .head .sub { font-size:11px; color:var(--muted); }
+    .brand .j { background:linear-gradient(90deg,var(--accent),var(--accent-2));
+        -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:700; }
+
+    .editor-wrap { flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
+    textarea#editor { flex:1 1 auto; min-height:140px;
+        font-family:'Fira Code',Consolas,Monaco,monospace; font-size:13px; line-height:1.55;
+        color:#d6deeb; background:#0d1220; border:none; outline:none; padding:14px 16px;
+        resize:none; tab-size:4; }
+
+    .toolbar { display:flex; gap:8px; align-items:center; padding:10px 12px;
+        border-top:1px solid var(--stroke); background:rgba(0,0,0,.25); flex:0 0 auto; }
+    .btn { border:1px solid var(--stroke); background:var(--panel); color:var(--text);
+        padding:7px 14px; border-radius:8px; cursor:pointer; font-size:12px;
+        font-family:inherit; display:inline-flex; align-items:center; gap:6px; }
+    .btn:hover { border-color: var(--accent); }
+    .btn.primary { background:linear-gradient(135deg,var(--accent),var(--accent-2));
+        border:none; color:#0b0f17; font-weight:700; }
+    .toolbar select { background:var(--panel); color:var(--text); border:1px solid var(--stroke);
+        border-radius:8px; padding:6px 10px; font-size:12px; font-family:inherit; }
+    .toolbar .spacer { flex:1 1 auto; }
+    .toolbar .hint { font-size:11px; color:var(--muted); }
+
+    .output { flex:0 0 auto; max-height:30vh; overflow:auto;
+        border-top:1px solid var(--stroke); background:#080c16; }
+    .output .label { font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+        color:var(--muted); padding:8px 16px 4px; }
+    .output pre { margin:0; padding:0 16px 12px;
+        font-family:'Fira Code',Consolas,Monaco,monospace; font-size:12px; line-height:1.55;
+        color:#d6deeb; white-space:pre-wrap; word-break:break-word; }
+    .output .err { color:#fecaca; }
+    .output .info { color:var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="view">
+    <span id="view-badge"><span class="dot"></span>JSPP → Canvas2D</span>
+    <a id="back" href="./">← back</a>
+    <canvas id="canvas" width="560" height="480"></canvas>
+</div>
+
+<div class="side">
+    <div class="head">
+        <div>
+            <div class="title brand"><span class="j">JSPP</span> Playground</div>
+            <div class="sub">write JSPP, hit Run, watch the canvas</div>
+        </div>
+    </div>
+
+    <div class="editor-wrap">
+        <textarea id="editor" spellcheck="false" autocomplete="off"></textarea>
+        <div class="toolbar">
+            <button id="btn-run" class="btn primary" title="Ctrl+Enter">▶ Run</button>
+            <select id="example">
+                <option value="">Load example…</option>
+                <option value="hello">hello — shapes + print</option>
+                <option value="loops">loops — grid of circles</option>
+                <option value="functions">functions — recursion</option>
+                <option value="classes">classes — OOP</option>
+                <option value="bouncing">bouncing — animation</option>
+            </select>
+            <span class="spacer"></span>
+            <span class="hint">Ctrl+Enter to run</span>
+        </div>
+        <div class="output">
+            <div class="label">Output</div>
+            <pre id="out"></pre>
+        </div>
+    </div>
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "fs":   "./node-shims.mjs",
+        "path": "./node-shims.mjs",
+        "url":  "./node-shims.mjs"
+    }
+}
+</script>
+
+<script type="module">
+const canvas   = document.getElementById("canvas");
+const ctx      = canvas.getContext("2d");
+const editor   = document.getElementById("editor");
+const btnRun   = document.getElementById("btn-run");
+const outEl    = document.getElementById("out");
+const exampleEl = document.getElementById("example");
+
+const EXAMPLES = {
+    hello:
+`// hello.jspp — draw shapes and print to the output console.
+// Builtins: clear(r,g,b), drawRect(x,y,w,h,r,g,b),
+//           drawCircle(x,y,radius,r,g,b), drawLine(x1,y1,x2,y2,r,g,b),
+//           print(...)
+
+clear(16, 22, 36);
+
+drawRect(40, 40, 200, 120, 255, 107, 107);
+drawCircle(360, 110, 60, 78, 205, 196);
+drawLine(20, 200, 540, 220, 255, 230, 109);
+
+print("Hello from JSPP!");
+print("Any shape you see was drawn by your JSPP code.");
+`,
+    loops:
+`// loops.jspp — nested loops draw a grid of circles.
+
+clear(12, 16, 28);
+
+let cols = 12;
+let rows = 9;
+let cell = 40;
+
+for (let y = 0; y < rows; y = y + 1) {
+    for (let x = 0; x < cols; x = x + 1) {
+        let cx = 40 + x * cell;
+        let cy = 40 + y * cell;
+        let r  = 10 + ((x + y) % 4) * 3;
+        let red   = 60 + x * 16;
+        let green = 200 - y * 18;
+        let blue  = 120 + ((x + y) % 5) * 20;
+        drawCircle(cx, cy, r, red, green, blue);
+    }
+}
+
+print("drew", cols * rows, "circles via a nested for-loop");
+`,
+    functions:
+`// functions.jspp — recursion + a helper function.
+
+clear(18, 24, 38);
+
+function fib(n) {
+    if (n < 2) { return n; }
+    return fib(n - 1) + fib(n - 2);
+}
+
+function bar(i, value) {
+    let x = 30 + i * 28;
+    let h = value * 4;
+    let y = 440 - h;
+    drawRect(x, y, 22, h, 120 + i * 10, 200, 255 - i * 12);
+}
+
+for (let i = 0; i < 12; i = i + 1) {
+    let f = fib(i);
+    bar(i, f);
+    print("fib(", i, ") =", f);
+}
+`,
+    classes:
+`// classes.jspp — classes + methods drive the rendering.
+
+clear(10, 14, 24);
+
+class Ball {
+    x;
+    y;
+    r;
+    cr;
+    cg;
+    cb;
+
+    constructor(x, y, r, cr, cg, cb) {
+        this.x = x; this.y = y; this.r = r;
+        this.cr = cr; this.cg = cg; this.cb = cb;
+    }
+
+    draw() {
+        drawCircle(this.x, this.y, this.r, this.cr, this.cg, this.cb);
+    }
+}
+
+let balls = [
+    new Ball(100, 240, 60, 255, 107, 107),
+    new Ball(220, 240, 60,  78, 205, 196),
+    new Ball(340, 240, 60, 255, 230, 109),
+    new Ball(460, 240, 60, 162, 140, 255)
+];
+
+for (let i = 0; i < 4; i = i + 1) {
+    balls[i].draw();
+}
+
+print("drew", 4, "Ball instances");
+`,
+    bouncing:
+`// bouncing.jspp — define a tick(t) function to animate the canvas.
+// When the playground sees a function named tick, it calls tick(t)
+// every frame with t = seconds since Run. Redraw with clear() inside.
+
+function tick(t) {
+    clear(10, 14, 24);
+    let cx = 280 + Math.sin(t * 2.0) * 220;
+    let cy = 240 + Math.cos(t * 1.7) * 160;
+    drawCircle(cx, cy, 40, 120, 220, 255);
+
+    for (let i = 0; i < 8; i = i + 1) {
+        let a = t * 0.6 + i * 0.8;
+        let x = 280 + Math.cos(a) * 180;
+        let y = 240 + Math.sin(a) * 180;
+        drawCircle(x, y, 12, 255 - i * 20, 130 + i * 10, 200);
+    }
+}
+`
+};
+
+editor.value = EXAMPLES.hello;
+
+// ---- Draw builtins: plain Canvas2D, no wasm, no hidden scene ----
+function clear(r, g, b) {
+    ctx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+function drawRect(x, y, w, h, r, g, b) {
+    ctx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
+    ctx.fillRect(x, y, w, h);
+}
+function drawCircle(x, y, radius, r, g, b) {
+    ctx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(0, radius), 0, Math.PI * 2);
+    ctx.fill();
+}
+function drawLine(x1, y1, x2, y2, r, g, b) {
+    ctx.strokeStyle = `rgb(${r|0},${g|0},${b|0})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+}
+
+function appendOut(text, cls) {
+    const span = document.createElement("span");
+    if (cls) span.className = cls;
+    span.textContent = text + "\n";
+    outEl.appendChild(span);
+    outEl.parentElement.scrollTop = outEl.parentElement.scrollHeight;
+}
+
+// ---- Load JSPP interpreter ----
+let jspp = null;
+try {
+    jspp = await import("./prototype/jspp.mjs");
+    appendOut("JSPP interpreter ready.", "info");
+} catch (err) {
+    console.error(err);
+    appendOut("Failed to load JSPP interpreter: " + err.message, "err");
+}
+
+let animHandle = null;
+let animStart  = 0;
+
+function stopAnim() {
+    if (animHandle !== null) {
+        cancelAnimationFrame(animHandle);
+        animHandle = null;
+    }
+}
+
+function run() {
+    if (!jspp) return;
+    stopAnim();
+    outEl.innerHTML = "";
+    // blank the canvas up front so visitors see their clear() effect
+    clear(14, 18, 28);
+
+    const source = editor.value;
+    const interp = new jspp.Interpreter({
+        onOutput: (line) => appendOut(line)
+    });
+    const g = interp.global;
+    g.define("clear",      clear);
+    g.define("drawRect",   drawRect);
+    g.define("drawCircle", drawCircle);
+    g.define("drawLine",   drawLine);
+    g.define("print",      (...args) => appendOut(args.map(a =>
+        typeof a === "string" ? a : JSON.stringify(a)).join(" ")));
+
+    // Parse
+    let ast;
+    try {
+        ast = jspp.parseSource(source, "playground.jspp");
+    } catch (err) {
+        appendOut("Parse error: " + (err.message || err), "err");
+        return;
+    }
+
+    // Execute. We wrap in a function so `return tick;` at the top level works
+    // to give us an animation callback.
+    let tickFn = null;
+    try {
+        // Run top-level. Any top-level `return X` is stored via a special mechanism:
+        // the interpreter's run() walks body statements. If user wrote a function
+        // named `tick`, we'll pick it up after.
+        interp.run(ast);
+        tickFn = g.vars.get("tick");
+    } catch (err) {
+        appendOut("Runtime error: " + (err.message || err), "err");
+        return;
+    }
+
+    if (typeof tickFn === "function") {
+        appendOut("tick() detected — animating.", "info");
+        animStart = performance.now();
+        const loop = (now) => {
+            const t = (now - animStart) / 1000;
+            try { tickFn(t); }
+            catch (err) {
+                appendOut("tick() error: " + (err.message || err), "err");
+                stopAnim(); return;
+            }
+            animHandle = requestAnimationFrame(loop);
+        };
+        animHandle = requestAnimationFrame(loop);
+    } else {
+        appendOut("done.", "info");
+    }
+}
+
+btnRun.addEventListener("click", run);
+editor.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); run(); }
+    if (e.key === "Tab") {
+        e.preventDefault();
+        const s = editor.selectionStart, en = editor.selectionEnd;
+        editor.value = editor.value.slice(0, s) + "    " + editor.value.slice(en);
+        editor.selectionStart = editor.selectionEnd = s + 4;
+    }
+});
+exampleEl.addEventListener("change", () => {
+    const key = exampleEl.value;
+    if (!key) return;
+    editor.value = EXAMPLES[key] || "";
+    exampleEl.value = "";
+    run();
+});
+
+// Auto-run the default example on load so something is visible immediately.
+if (jspp) run();
+</script>
+
+</body>
+</html>
 <!doctype html>
 <html lang="en">
 <head>
