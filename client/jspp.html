@@ -70,8 +70,8 @@
 <body>
 
 <div class="view">
-    <span id="view-badge"><span class="dot"></span>JSPP → Canvas2D</span>
-    <a id="back" href="./">← back</a>
+    <span id="view-badge"><span class="dot"></span>JSPP â†’ Canvas2D</span>
+    <a id="back" href="./">â† back</a>
     <canvas id="canvas" width="560" height="480"></canvas>
 </div>
 
@@ -86,14 +86,14 @@
     <div class="editor-wrap">
         <textarea id="editor" spellcheck="false" autocomplete="off"></textarea>
         <div class="toolbar">
-            <button id="btn-run" class="btn primary" title="Ctrl+Enter">▶ Run</button>
+            <button id="btn-run" class="btn primary" title="Ctrl+Enter">â–¶ Run</button>
             <select id="example">
-                <option value="">Load example…</option>
-                <option value="hello">hello — shapes + print</option>
-                <option value="loops">loops — grid of circles</option>
-                <option value="functions">functions — recursion</option>
-                <option value="classes">classes — OOP</option>
-                <option value="bouncing">bouncing — animation</option>
+                <option value="">Load exampleâ€¦</option>
+                <option value="hello">hello â€” shapes + print</option>
+                <option value="loops">loops â€” grid of circles</option>
+                <option value="functions">functions â€” recursion</option>
+                <option value="classes">classes â€” OOP</option>
+                <option value="bouncing">bouncing â€” animation</option>
             </select>
             <span class="spacer"></span>
             <span class="hint">Ctrl+Enter to run</span>
@@ -125,7 +125,7 @@ const exampleEl = document.getElementById("example");
 
 const EXAMPLES = {
     hello:
-`// hello.jspp — draw shapes and print to the output console.
+`// hello.jspp â€” draw shapes and print to the output console.
 // Builtins: clear(r,g,b), drawRect(x,y,w,h,r,g,b),
 //           drawCircle(x,y,radius,r,g,b), drawLine(x1,y1,x2,y2,r,g,b),
 //           print(...)
@@ -140,7 +140,7 @@ print("Hello from JSPP!");
 print("Any shape you see was drawn by your JSPP code.");
 `,
     loops:
-`// loops.jspp — nested loops draw a grid of circles.
+`// loops.jspp â€” nested loops draw a grid of circles.
 
 clear(12, 16, 28);
 
@@ -163,7 +163,7 @@ for (let y = 0; y < rows; y = y + 1) {
 print("drew", cols * rows, "circles via a nested for-loop");
 `,
     functions:
-`// functions.jspp — recursion + a helper function.
+`// functions.jspp â€” recursion + a helper function.
 
 clear(18, 24, 38);
 
@@ -186,7 +186,7 @@ for (let i = 0; i < 12; i = i + 1) {
 }
 `,
     classes:
-`// classes.jspp — classes + methods drive the rendering.
+`// classes.jspp â€” classes + methods drive the rendering.
 
 clear(10, 14, 24);
 
@@ -222,7 +222,7 @@ for (let i = 0; i < 4; i = i + 1) {
 print("drew", 4, "Ball instances");
 `,
     bouncing:
-`// bouncing.jspp — define a tick(t) function to animate the canvas.
+`// bouncing.jspp â€” define a tick(t) function to animate the canvas.
 // When the playground sees a function named tick, it calls tick(t)
 // every frame with t = seconds since Run. Redraw with clear() inside.
 
@@ -339,7 +339,7 @@ function run() {
     }
 
     if (typeof tickFn === "function") {
-        appendOut("tick() detected — animating.", "info");
+        appendOut("tick() detected â€” animating.", "info");
         animStart = performance.now();
         const loop = (now) => {
             const t = (now - animStart) / 1000;
@@ -378,350 +378,5 @@ exampleEl.addEventListener("change", () => {
 if (jspp) run();
 </script>
 
-</body>
-</html>
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ZeroEngine — JS++ Scripting</title>
-    <style>
-        :root {
-            color-scheme: dark;
-            font-family: "Consolas", "Menlo", monospace;
-            background: #0a0e17;
-            color: #f3f7ff;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            grid-template-rows: 1fr;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        /* Left panel — 3D engine canvas */
-        .viewport {
-            position: relative;
-            background: #050913;
-            overflow: hidden;
-        }
-
-        #engine-canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-
-        #status {
-            position: absolute;
-            bottom: 12px;
-            left: 12px;
-            font-size: 11px;
-            color: #9ae3df;
-            opacity: 0.7;
-            pointer-events: none;
-        }
-
-        /* Right panel — code editor and output */
-        .editor-panel {
-            display: flex;
-            flex-direction: column;
-            border-left: 1px solid rgba(255,255,255,0.1);
-            background: #0d1220;
-        }
-
-        .panel-header {
-            padding: 12px 16px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #9ae3df;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .panel-header .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 8px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.06);
-            color: #ffcf8d;
-            font-size: 10px;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-        }
-
-        #code-editor {
-            flex: 1;
-            resize: none;
-            background: #080c16;
-            color: #e8ecf0;
-            border: none;
-            padding: 14px 16px;
-            font-family: inherit;
-            font-size: 13px;
-            line-height: 1.6;
-            tab-size: 4;
-            outline: none;
-            overflow-y: auto;
-        }
-
-        #code-editor::placeholder {
-            color: rgba(255,255,255,0.2);
-        }
-
-        .toolbar {
-            display: flex;
-            gap: 8px;
-            padding: 10px 16px;
-            border-top: 1px solid rgba(255,255,255,0.08);
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .toolbar button {
-            padding: 6px 14px;
-            border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.12);
-            background: rgba(255,255,255,0.05);
-            color: #f3f7ff;
-            font-family: inherit;
-            font-size: 12px;
-            cursor: pointer;
-            transition: background 0.15s;
-        }
-
-        .toolbar button:hover {
-            background: rgba(255,255,255,0.1);
-        }
-
-        .toolbar button.primary {
-            background: rgba(78, 197, 201, 0.2);
-            border-color: rgba(78, 197, 201, 0.4);
-            color: #9ae3df;
-        }
-
-        .toolbar button.primary:hover {
-            background: rgba(78, 197, 201, 0.3);
-        }
-
-        .output-section {
-            flex: 0 0 180px;
-            display: flex;
-            flex-direction: column;
-            border-top: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .output-header {
-            padding: 8px 16px;
-            font-size: 11px;
-            color: rgba(255,255,255,0.4);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        #output {
-            flex: 1;
-            padding: 0 16px 12px;
-            font-size: 12px;
-            line-height: 1.5;
-            overflow-y: auto;
-            color: #c8ccd4;
-        }
-
-        #output .error {
-            color: #ff6060;
-        }
-
-        #output .info {
-            color: #9ae3df;
-        }
-
-        @media (max-width: 840px) {
-            body {
-                grid-template-columns: 1fr;
-                grid-template-rows: 50vh 50vh;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="viewport">
-        <canvas id="engine-canvas"></canvas>
-        <div id="status">Loading WebAssembly runtime…</div>
-    </div>
-
-    <div class="editor-panel">
-        <div class="panel-header">
-            <span>JS++ Editor</span>
-            <span class="badge">ZeroEngine</span>
-        </div>
-        <textarea id="code-editor" spellcheck="false">// Write JSPP code here and press Run (Ctrl+Enter)
-// Available: drawRect, drawCircle, drawLine, clear, print
-
-clear(30, 30, 40);
-
-// Draw a little scene
-drawRect(50, 50, 200, 100, 255, 80, 80);
-drawCircle(300, 200, 60, 80, 200, 255);
-drawLine(10, 10, 400, 300, 255, 255, 100);
-
-// Loops, variables, everything JSPP supports
-for (let i = 0; i &lt; 8; i = i + 1) {
-    drawCircle(80 + i * 40, 320, 12, 80 + i * 20, 200, 255);
-}
-
-print("Hello from JSPP!");
-</textarea>
-        <div class="toolbar">
-            <button class="primary" id="btn-run" title="Ctrl+Enter">&#9654; Run</button>
-            <button id="btn-clear">Clear Output</button>
-        </div>
-        <div class="output-section">
-            <div class="output-header">Output</div>
-            <div id="output"></div>
-        </div>
-    </div>
-
-    <script type="importmap">
-    {
-        "imports": {
-            "fs": "./node-shims.mjs",
-            "path": "./node-shims.mjs",
-            "url": "./node-shims.mjs"
-        }
-    }
-    </script>
-
-    <script type="module">
-        const statusEl = document.getElementById("status");
-        const outputEl = document.getElementById("output");
-        const editorEl = document.getElementById("code-editor");
-        const btnRun = document.getElementById("btn-run");
-        const btnClear = document.getElementById("btn-clear");
-
-        function appendOutput(text, className) {
-            const div = document.createElement("div");
-            if (className) div.className = className;
-            div.textContent = text;
-            outputEl.appendChild(div);
-            outputEl.scrollTop = outputEl.scrollHeight;
-        }
-
-        // ---- Load WASM engine ----
-        let wasmApi = null;
-
-        try {
-            const engineModule = await import("./pkg/zero_engine_client.js");
-            // Initialize the WASM runtime (calls start() which boots the 3D engine)
-            await engineModule.default();
-            // Collect the jspp_* exports into an object the bridge expects
-            wasmApi = {
-                jspp_draw_rect: engineModule.jspp_draw_rect,
-                jspp_draw_circle: engineModule.jspp_draw_circle,
-                jspp_draw_line: engineModule.jspp_draw_line,
-                jspp_clear: engineModule.jspp_clear,
-                jspp_log: engineModule.jspp_log,
-                jspp_scene_ready: engineModule.jspp_scene_ready,
-            };
-            appendOutput("ZeroEngine WASM loaded.", "info");
-        } catch (err) {
-            console.error("Failed to start ZeroEngine:", err);
-            statusEl.textContent = "WASM startup failed. See console.";
-            appendOutput("Engine failed to load: " + err.message, "error");
-        }
-
-        // ---- Load JS++ interpreter + bridge ----
-        let interpreter = null;
-        let parseSourceFn = null;
-        let executeScriptFn = null;
-
-        try {
-            const jspp = await import("../../prototype/jspp.mjs");
-            const bridge = await import("./jspp_engine_bridge.mjs");
-
-            interpreter = new jspp.Interpreter({
-                onOutput: (line) => appendOutput(line)
-            });
-
-            if (wasmApi) {
-                bridge.installEngineBridge(interpreter, wasmApi);
-            } else {
-                // No engine — install no-op stubs so scripts don't crash
-                bridge.installEngineBridge(interpreter, {
-                    jspp_draw_rect: () => {},
-                    jspp_draw_circle: () => {},
-                    jspp_draw_line: () => {},
-                    jspp_clear: () => {},
-                    jspp_log: () => {},
-                    jspp_scene_ready: () => {},
-                });
-            }
-
-            parseSourceFn = jspp.parseSource;
-            executeScriptFn = bridge.executeScript;
-            appendOutput("JS++ interpreter ready.", "info");
-        } catch (err) {
-            console.error("Failed to load JS++ interpreter:", err);
-            appendOutput("Interpreter failed to load: " + err.message, "error");
-        }
-
-        // ---- Run button ----
-        function runCode() {
-            if (!interpreter || !parseSourceFn || !executeScriptFn) {
-                appendOutput("Interpreter not loaded.", "error");
-                return;
-            }
-
-            const source = editorEl.value;
-            if (!source.trim()) return;
-
-            appendOutput("─── Running ───", "info");
-            const result = executeScriptFn(interpreter, parseSourceFn, source);
-
-            for (const err of result.errors) {
-                appendOutput(err, "error");
-            }
-
-            if (wasmApi && wasmApi.jspp_scene_ready) {
-                wasmApi.jspp_scene_ready();
-            }
-        }
-
-        btnRun.addEventListener("click", runCode);
-        btnClear.addEventListener("click", () => { outputEl.innerHTML = ""; });
-
-        editorEl.addEventListener("keydown", (e) => {
-            // Ctrl+Enter or Cmd+Enter to run
-            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-                e.preventDefault();
-                runCode();
-            }
-            // Tab inserts spaces
-            if (e.key === "Tab") {
-                e.preventDefault();
-                const start = editorEl.selectionStart;
-                const end = editorEl.selectionEnd;
-                editorEl.value = editorEl.value.substring(0, start) + "    " + editorEl.value.substring(end);
-                editorEl.selectionStart = editorEl.selectionEnd = start + 4;
-            }
-        });
-
-        // Pre-fill the editor with the placeholder example
-        if (!editorEl.value.trim()) {
-            editorEl.value = `clear(30, 30, 40)
-drawRect(50, 50, 200, 100, 255, 80, 80)
-drawCircle(300, 200, 60, 80, 200, 255)
-drawLine(10, 10, 400, 300, 255, 255, 100)
-print("Hello from JS++!")`;
-        }
-    </script>
 </body>
 </html>
