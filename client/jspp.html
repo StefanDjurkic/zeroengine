@@ -132,44 +132,57 @@ import * as THREE from "three";
 
 const EXAMPLES = {
 hello:
-`// hello.jspp - draw shapes and print to the output console.
+`// hello.jspp - randomised shapes. Hit Run again for a new picture.
 // Builtins: clear(r,g,b), drawRect(x,y,w,h,r,g,b),
 //           drawCircle(x,y,radius,r,g,b), drawLine(x1,y1,x2,y2,r,g,b),
-//           print(...)
+//           rand(), randInt(lo, hi), print(...)
 
 clear(16, 22, 36);
 
-drawRect(40, 40, 220, 140, 255, 107, 107);
-drawCircle(420, 130, 70, 78, 205, 196);
-drawLine(20, 230, 620, 240, 255, 230, 109);
+for (let i = 0; i < 40; i = i + 1) {
+    let x = randInt(20, 620);
+    let y = randInt(20, 500);
+    let r = randInt(10, 60);
+    drawCircle(x, y, r, randInt(60, 255), randInt(60, 255), randInt(60, 255));
+}
 
-print("Hello from JSPP!");
-print("Every shape above was drawn by your JSPP code.");
+for (let i = 0; i < 8; i = i + 1) {
+    drawLine(randInt(0, 640), randInt(0, 520),
+             randInt(0, 640), randInt(0, 520),
+             randInt(120, 255), randInt(120, 255), randInt(120, 255));
+}
+
+print("Hello from JSPP! Hit Run again to redraw.");
 `,
 
 loops:
-`// loops.jspp - nested loops draw a grid of circles.
+`// loops.jspp - a grid of circles whose colours shift each Run.
 
 clear(12, 16, 28);
 
-let cols = 14;
-let rows = 10;
-let cell = 42;
+let cols = 16;
+let rows = 12;
+let cell = 38;
+let hueShift = randInt(0, 255);
+let phase    = rand() * 6.28;
 
 for (let y = 0; y < rows; y = y + 1) {
     for (let x = 0; x < cols; x = x + 1) {
-        let cx = 40 + x * cell;
-        let cy = 40 + y * cell;
-        let r  = 10 + ((x + y) % 4) * 3;
-        drawCircle(cx, cy, r, 60 + x * 14, 200 - y * 18, 120 + ((x + y) % 5) * 20);
+        let cx = 30 + x * cell;
+        let cy = 30 + y * cell;
+        let wave = Math.sin((x + y) * 0.45 + phase) * 6 + 14;
+        let cr = (hueShift + x * 13) % 256;
+        let cg = (hueShift + y * 17 + 80) % 256;
+        let cb = (hueShift + (x + y) * 9 + 160) % 256;
+        drawCircle(cx, cy, wave, cr, cg, cb);
     }
 }
 
-print("drew", cols * rows, "circles via a nested for-loop");
+print("drew", cols * rows, "circles (hue shift =", hueShift, ")");
 `,
 
 functions:
-`// functions.jspp - recursion + helper function.
+`// functions.jspp - recursion + a bar chart of random heights.
 
 clear(18, 24, 38);
 
@@ -178,17 +191,22 @@ function fib(n) {
     return fib(n - 1) + fib(n - 2);
 }
 
-function bar(i, value) {
+function bar(i, value, cr, cg, cb) {
     let x = 30 + i * 32;
-    let h = value * 3;
-    let y = 460 - h;
-    drawRect(x, y, 26, h, 120 + i * 10, 200, 255 - i * 12);
+    let h = value;
+    let y = 470 - h;
+    drawRect(x, y, 26, h, cr, cg, cb);
 }
 
-for (let i = 0; i < 14; i = i + 1) {
-    let f = fib(i);
-    bar(i, f);
-    print("fib(", i, ") =", f);
+// Fibonacci, printed.
+for (let i = 0; i < 10; i = i + 1) {
+    print("fib(", i, ") =", fib(i));
+}
+
+// Random bar chart on top.
+for (let i = 0; i < 18; i = i + 1) {
+    let h = randInt(20, 400);
+    bar(i, h, randInt(120, 255), randInt(120, 255), randInt(120, 255));
 }
 `,
 
@@ -198,51 +216,77 @@ classes:
 clear(10, 14, 24);
 
 class Ball {
-    x;
-    y;
-    r;
-    cr;
-    cg;
-    cb;
+    x: number;
+    y: number;
+    r: number;
+    cr: number;
+    cg: number;
+    cb: number;
 
     constructor(x, y, r, cr, cg, cb) {
         this.x = x; this.y = y; this.r = r;
         this.cr = cr; this.cg = cg; this.cb = cb;
     }
 
-    draw() {
+    function draw() {
         drawCircle(this.x, this.y, this.r, this.cr, this.cg, this.cb);
+    }
+
+    function halo() {
+        drawCircle(this.x, this.y, this.r + 8, this.cr / 3, this.cg / 3, this.cb / 3);
     }
 }
 
-let balls = [
-    new Ball(110, 260, 70, 255, 107, 107),
-    new Ball(260, 260, 70,  78, 205, 196),
-    new Ball(410, 260, 70, 255, 230, 109),
-    new Ball(560, 260, 70, 162, 140, 255)
-];
-
-for (let i = 0; i < 4; i = i + 1) {
-    balls[i].draw();
+let balls = [];
+for (let i = 0; i < 12; i = i + 1) {
+    let b = new Ball(
+        randInt(60, 580),
+        randInt(60, 460),
+        randInt(20, 55),
+        randInt(120, 255),
+        randInt(120, 255),
+        randInt(120, 255)
+    );
+    balls.push(b);
 }
 
-print("drew", 4, "Ball instances");
+for (let i = 0; i < 12; i = i + 1) { balls[i].halo(); }
+for (let i = 0; i < 12; i = i + 1) { balls[i].draw(); }
+
+print("drew", 12, "Ball instances with halos");
 `,
 
 bouncing:
 `// bouncing.jspp - define tick(t) and the playground animates the canvas.
+// Each Run reshuffles the swarm colours and orbits.
+
+let nDots = 14;
+let orbits = [];
+for (let i = 0; i < nDots; i = i + 1) {
+    orbits.push({
+        rx: 140 + rand() * 140,
+        ry: 120 + rand() * 140,
+        sp: 0.4 + rand() * 1.6,
+        ph: rand() * 6.28,
+        cr: randInt(120, 255),
+        cg: randInt(120, 255),
+        cb: randInt(120, 255)
+    });
+}
 
 function tick(t) {
     clear(10, 14, 24);
-    let cx = 320 + Math.sin(t * 2.0) * 260;
-    let cy = 260 + Math.cos(t * 1.7) * 180;
-    drawCircle(cx, cy, 42, 120, 220, 255);
 
-    for (let i = 0; i < 10; i = i + 1) {
-        let a = t * 0.6 + i * 0.7;
-        let x = 320 + Math.cos(a) * 220;
-        let y = 260 + Math.sin(a) * 200;
-        drawCircle(x, y, 14, 255 - i * 18, 130 + i * 10, 200);
+    let cx = 320 + Math.sin(t * 2.0) * 240;
+    let cy = 260 + Math.cos(t * 1.7) * 180;
+    drawCircle(cx, cy, 46, 120, 220, 255);
+
+    for (let i = 0; i < nDots; i = i + 1) {
+        let o = orbits[i];
+        let a = t * o.sp + o.ph;
+        let x = 320 + Math.cos(a) * o.rx;
+        let y = 260 + Math.sin(a) * o.ry;
+        drawCircle(x, y, 14, o.cr, o.cg, o.cb);
     }
 }
 `,
@@ -422,6 +466,13 @@ function run() {
     }
     g.define("print", (...args) => appendOut(args.map(a =>
         typeof a === "string" ? a : JSON.stringify(a)).join(" ")));
+    g.define("rand", () => Math.random());
+    g.define("randInt", (lo, hi) => {
+        const a = Math.floor(Number(lo) || 0);
+        const b = Math.floor(Number(hi) || 0);
+        const min = Math.min(a, b), max = Math.max(a, b);
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    });
 
     let parsed;
     try {
