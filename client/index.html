@@ -72,10 +72,10 @@
         </div>
         <p class="tag">live 3D demo - a JSPP script drives this cube in real time</p>
         <p class="line">The cube's rotation, scale, colors, and click behavior are written in <b>JSPP</b>. A reference interpreter (JavaScript) runs that JSPP source in your browser and calls into <b>Three.js</b> to render. You are watching JSPP semantics executing, not canned animation.</p>
-        <p class="line">JSPP also has a real <b>C++20 compiler</b>. See <a href="https://github.com/StefanDjurkic/zeroengine/tree/main/demos/compiled" target="_blank" rel="noopener" style="color:var(--accent)">/demos/compiled</a> for four programs compiled through the full <code>jspp -&gt; .cpp -&gt; native binary</code> pipeline, with the generated C++ and exact stdout committed and re-verified by CI on every push. The <a href="./jspp.html" style="color:var(--accent)">playground</a> can also run those same <code>.cpp</code> files as <b>wasm in your browser</b> (emcc build) and diff their output against the native binary's output live.</p>
+        <p class="line">JSPP also has a real <b>C++20 compiler</b>. Install <b>ZeroEngine Desktop</b> and the <a href="./jspp.html" style="color:var(--accent)">playground</a>'s <code>Run as compiled C++</code> button will send whatever you type through the JSPP compiler, build the resulting C++ with your local toolchain, and execute the native binary - all without leaving the app. Without the desktop install, the playground still runs JSPP in-browser via the JS reference interpreter.</p>
         <div class="btns">
             <a class="btn primary" href="./jspp.html">Open JSPP Playground</a>
-            <a class="btn" href="https://github.com/StefanDjurkic/zeroengine/tree/main/demos/compiled" target="_blank" rel="noopener">Compiled demos</a>
+            <a class="btn" href="https://github.com/StefanDjurkic/zeroengine/releases/latest" target="_blank" rel="noopener">Download ZeroEngine Desktop</a>
             <a class="btn" href="https://github.com/StefanDjurkic/jspp" target="_blank" rel="noopener">JSPP repo</a>
             <a class="btn" href="https://github.com/StefanDjurkic/zeroengine" target="_blank" rel="noopener">ZeroEngine repo</a>
         </div>

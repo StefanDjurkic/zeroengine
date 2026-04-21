@@ -1,0 +1,57 @@
+{
+    "$schema": "https://schema.tauri.app/config/2",
+    "productName": "ZeroEngine",
+    "version": "0.1.0",
+    "identifier": "com.stefandjurkic.zeroengine",
+    "build": {
+        "frontendDist": "../client",
+        "devUrl": null,
+        "beforeDevCommand": null,
+        "beforeBuildCommand": null
+    },
+    "app": {
+        "withGlobalTauri": true,
+        "windows": [
+            {
+                "label": "main",
+                "title": "ZeroEngine",
+                "url": "shell.html",
+                "width": 1280,
+                "height": 820,
+                "minWidth": 900,
+                "minHeight": 600,
+                "resizable": true,
+                "fullscreen": false,
+                "decorations": true,
+                "transparent": false,
+                "center": true
+            }
+        ],
+        "security": {
+            "csp": null,
+            "dangerousDisableAssetCspModification": true
+        }
+    },
+    "bundle": {
+        "active": true,
+        "targets": "all",
+        "category": "DeveloperTool",
+        "shortDescription": "ZeroEngine - browser, playground, local C++ compile bridge.",
+        "longDescription": "ZeroEngine is a desktop shell that combines the JSPP playground, a general-purpose webview browser, and a local bridge that compiles JSPP to C++ and runs the native binary on your machine.",
+        "icon": [
+            "icons/32x32.png",
+            "icons/128x128.png",
+            "icons/128x128@2x.png",
+            "icons/icon.icns",
+            "icons/icon.ico"
+        ],
+        "resources": [
+            "resources/*"
+        ],
+        "windows": {
+            "webviewInstallMode": {
+                "type": "downloadBootstrapper"
+            }
+        }
+    }
+}

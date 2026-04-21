@@ -1,0 +1,139 @@
+name: ZeroEngine Desktop - Build installers
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.os }} installer
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rust-target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            rust-target: aarch64-apple-darwin
+          - os: ubuntu-22.04
+            rust-target: x86_64-unknown-linux-gnu
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout jspp (to bundle the compiler binary)
+        uses: actions/checkout@v4
+        with:
+          repository: StefanDjurkic/jspp
+          path: _jspp
+          ref: main
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-target }}
+
+      - name: Linux deps (webkit2gtk, librsvg, etc.)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            build-essential \
+            libssl-dev
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-tauri-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-tauri-
+
+      - name: Build jspp compiler (CMake + C++20)
+        shell: bash
+        run: |
+          set -e
+          mkdir -p _jspp/build
+          cd _jspp/build
+          cmake ..
+          cmake --build . --config Release -j
+          ls -la
+
+      - name: Stage jspp binary into desktop/resources/
+        shell: bash
+        run: |
+          set -e
+          mkdir -p desktop/resources
+          if [ "${{ runner.os }}" = "Windows" ]; then
+              cp _jspp/build/Release/jspp.exe desktop/resources/jspp.exe \
+                  || cp _jspp/build/jspp.exe desktop/resources/jspp.exe
+          else
+              cp _jspp/build/jspp desktop/resources/jspp
+              chmod +x desktop/resources/jspp
+          fi
+          ls -la desktop/resources
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Generate icons (from placeholder if missing)
+        shell: bash
+        run: |
+          set -e
+          cd desktop
+          if [ ! -f icons/32x32.png ]; then
+              # Create a 1024x1024 placeholder then let tauri-icon expand it.
+              if command -v magick >/dev/null 2>&1; then
+                  magick -size 1024x1024 gradient:'#22d3ee-#a78bfa' \
+                      -gravity center -pointsize 400 -fill '#0b0f17' \
+                      -annotate +0+0 'Z' icons/icon.png
+              elif command -v python >/dev/null 2>&1 || command -v python3 >/dev/null 2>&1; then
+                  PY=$(command -v python3 || command -v python)
+                  "$PY" -c "from PIL import Image, ImageDraw, ImageFont; \
+                      img=Image.new('RGB',(1024,1024),'#0b0f17'); \
+                      d=ImageDraw.Draw(img); \
+                      d.rectangle([0,0,1024,1024], fill='#121826'); \
+                      d.ellipse([112,112,912,912], fill='#22d3ee'); \
+                      img.save('icons/icon.png')" || echo "pillow unavailable"
+              fi
+              if [ -f icons/icon.png ]; then
+                  cargo tauri icon icons/icon.png --output icons
+              fi
+          fi
+          ls -la icons
+
+      - name: Build installers
+        run: cargo tauri build --config desktop/tauri.conf.json
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeroengine-${{ matrix.os }}
+          path: |
+            target/release/bundle/**/*.msi
+            target/release/bundle/**/*.exe
+            target/release/bundle/**/*.dmg
+            target/release/bundle/**/*.AppImage
+            target/release/bundle/**/*.deb
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            target/release/bundle/**/*.msi
+            target/release/bundle/**/*.exe
+            target/release/bundle/**/*.dmg
+            target/release/bundle/**/*.AppImage
+            target/release/bundle/**/*.deb

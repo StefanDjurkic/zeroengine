@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeroEngine</title>
+<style>
+:root {
+    --bg-0:#0b0f17; --bg-1:#121826; --panel:#1a2233; --stroke:#2a3347;
+    --text:#e5e7eb; --muted:#9ca3af; --accent:#22d3ee; --accent-2:#a78bfa;
+    --ok:#34d399; --warn:#fbbf24; --err:#ef4444;
+}
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; height:100%; background:var(--bg-0);
+    color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; overflow:hidden; }
+body {
+    background:
+        radial-gradient(ellipse at top left, rgba(34,211,238,.10), transparent 50%),
+        radial-gradient(ellipse at bottom right, rgba(167,139,250,.10), transparent 55%),
+        var(--bg-0);
+    display:grid; grid-template-rows: auto 1fr auto; height:100vh;
+}
+
+/* ---- top bar ---- */
+.topbar {
+    display:flex; align-items:center; gap:14px; padding:14px 22px;
+    border-bottom:1px solid var(--stroke); background:rgba(11,15,23,.6);
+    backdrop-filter: blur(10px);
+}
+.brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:15px; }
+.brand .dot { width:10px; height:10px; border-radius:50%; background:var(--ok);
+    box-shadow: 0 0 10px var(--ok); animation: pulse 1.8s infinite; }
+@keyframes pulse { 0%,100% { opacity:1; transform:scale(1);} 50% { opacity:.55; transform:scale(1.25);} }
+.brand .z { background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+.brand .sub { font-size:11px; color:var(--muted); font-weight:500; margin-left:4px; }
+
+.addr-wrap { flex:1; display:flex; gap:8px; max-width:720px; margin:0 auto; }
+.addr {
+    flex:1; background:var(--panel); border:1px solid var(--stroke);
+    color:var(--text); padding:8px 14px; border-radius:999px;
+    font-family: 'Fira Code', Consolas, Monaco, monospace; font-size:13px; outline:none;
+}
+.addr:focus { border-color:var(--accent); }
+.btn {
+    border:1px solid var(--stroke); background:var(--panel); color:var(--text);
+    padding:8px 14px; border-radius:10px; cursor:pointer; font-size:13px;
+    font-family:inherit; display:inline-flex; align-items:center; gap:6px;
+}
+.btn:hover { border-color:var(--accent); }
+.btn.primary {
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    border:none; color:#0b0f17; font-weight:700;
+}
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+
+/* ---- content ---- */
+.content { overflow:auto; padding:40px 5vw; }
+.hero { max-width:880px; margin:0 auto 32px; }
+.hero h1 { font-size:34px; margin:0 0 10px; font-weight:700; letter-spacing:-.5px; }
+.hero h1 .z { background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+.hero p { color:#cbd5e1; line-height:1.6; margin:0; font-size:15px; }
+
+.grid { display:grid; gap:18px; max-width:1100px; margin:0 auto;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.tile {
+    background: linear-gradient(180deg, rgba(26,34,51,.9), rgba(18,24,38,.9));
+    border:1px solid var(--stroke); border-radius:16px; padding:22px;
+    cursor:pointer; transition: transform .15s ease, border-color .15s ease;
+    display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden;
+}
+.tile:hover { transform: translateY(-2px); border-color: var(--accent); }
+.tile .icon { font-size:28px; line-height:1; }
+.tile h3 { margin:0; font-size:16px; }
+.tile p { margin:0; color:var(--muted); font-size:13px; line-height:1.5; }
+.tile .chip {
+    display:inline-block; align-self:flex-start;
+    font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+    padding:3px 8px; border-radius:999px; border:1px solid var(--stroke); color:var(--muted);
+}
+.tile .chip.ok   { color:var(--ok);   border-color: rgba(52,211,153,.4); background:rgba(52,211,153,.08); }
+.tile .chip.warn { color:var(--warn); border-color: rgba(251,191,36,.4); background:rgba(251,191,36,.08); }
+.tile .chip.err  { color:var(--err);  border-color: rgba(239,68,68,.4);  background:rgba(239,68,68,.08); }
+
+/* ---- bridge panel ---- */
+.panel {
+    max-width:1100px; margin:32px auto 0; background:var(--bg-1);
+    border:1px solid var(--stroke); border-radius:14px; padding:18px 22px;
+    display:flex; flex-wrap:wrap; gap:16px; align-items:center;
+}
+.panel .row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.panel b { color:#fff; }
+.panel code { font-family:'Fira Code',Consolas,Monaco,monospace; color:#cbd5e1;
+    background:rgba(0,0,0,.3); padding:2px 6px; border-radius:4px; font-size:12px; }
+.panel .spacer { flex:1; }
+
+/* ---- footer ---- */
+.footer { padding:12px 22px; border-top:1px solid var(--stroke);
+    display:flex; justify-content:space-between; font-size:11px; color:var(--muted);
+    background:rgba(11,15,23,.6); }
+.footer a { color:var(--accent); text-decoration:none; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="brand">
+        <span class="dot"></span>
+        <span class="z">ZeroEngine</span>
+        <span class="sub">v0.1.0</span>
+    </div>
+    <form id="addr-form" class="addr-wrap">
+        <input id="addr" class="addr" placeholder="Enter a URL and press Enter to open in a new ZeroEngine window..." spellcheck="false" autocomplete="off">
+        <button class="btn primary" type="submit">Go</button>
+    </form>
+    <button id="btn-playground" class="btn">Playground</button>
+</div>
+
+<div class="content">
+    <div class="hero">
+        <h1>Welcome to <span class="z">ZeroEngine</span></h1>
+        <p>A desktop shell that doubles as a browser, a JSPP playground, and a local compile bridge. Type any URL above to open it in a new window. Open the Playground to write JSPP and run it as real compiled C++ on your machine.</p>
+    </div>
+
+    <div class="grid">
+        <div class="tile" id="tile-playground">
+            <div class="icon">[J]</div>
+            <h3>JSPP Playground</h3>
+            <p>Write JSPP, watch a canvas. Click <b>Run as compiled C++</b> to compile through the JSPP compiler and execute the native binary via the bridge.</p>
+            <span id="chip-playground" class="chip ok">ready</span>
+        </div>
+
+        <div class="tile" id="tile-browser">
+            <div class="icon">[W]</div>
+            <h3>Browser</h3>
+            <p>Open any URL in a new webview window. ZeroEngine is a browser when you want it to be - and the pages you open can talk to the local bridge via <code>window.__TAURI__</code>.</p>
+            <span class="chip">ready</span>
+        </div>
+
+        <div class="tile" id="tile-bridge">
+            <div class="icon">[C]</div>
+            <h3>Compile Bridge</h3>
+            <p id="bridge-msg">Detecting toolchain...</p>
+            <span id="chip-bridge" class="chip">checking</span>
+        </div>
+
+        <div class="tile" id="tile-apps">
+            <div class="icon">[A]</div>
+            <h3>ZeroEngine Apps</h3>
+            <p>Coming soon: load `.zeroapp` bundles and run them like desktop programs. Each app can use JSPP for scripting and C++ for the hot path.</p>
+            <span class="chip warn">coming soon</span>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="row">
+            <span>Bridge:</span>
+            <span id="bridge-jspp">jspp: <b>?</b></span>
+            <span id="bridge-cxx">compiler: <b>?</b></span>
+        </div>
+        <div class="spacer"></div>
+        <button id="btn-rescan" class="btn">Re-scan</button>
+    </div>
+</div>
+
+<div class="footer">
+    <span>ZeroEngine - a desktop app that is also a browser, a playground, and a compile bridge.</span>
+    <span><a href="https://github.com/StefanDjurkic/zeroengine" id="link-repo">github.com/StefanDjurkic/zeroengine</a></span>
+</div>
+
+<script type="module">
+const tauri = window.__TAURI__;
+if (!tauri) {
+    // Shouldn't happen - this page is the desktop shell. If it's opened in a
+    // plain browser, degrade gracefully.
+    document.querySelectorAll(".tile, button[type=submit]").forEach(el => {
+        if (el.tagName === "BUTTON") el.disabled = true;
+    });
+    document.querySelector(".hero p").textContent =
+        "This is the ZeroEngine desktop shell. Open it inside the ZeroEngine application to use the bridge.";
+}
+const invoke = tauri?.core?.invoke;
+
+// ---- navigate to playground (same window) ----
+function openPlayground() {
+    window.location.href = "jspp.html";
+}
+document.getElementById("btn-playground").addEventListener("click", openPlayground);
+document.getElementById("tile-playground").addEventListener("click", openPlayground);
+
+// ---- browser: URL bar + tile ----
+async function openUrl(raw) {
+    if (!invoke) return;
+    const url = (raw || "").trim();
+    if (!url) return;
+    try {
+        await invoke("open_browser", { url });
+    } catch (err) {
+        alert("Could not open URL: " + (err?.message || err));
+    }
+}
+document.getElementById("addr-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    openUrl(document.getElementById("addr").value);
+});
+document.getElementById("tile-browser").addEventListener("click", () => {
+    const u = prompt("URL to open in a new ZeroEngine browser window:", "https://stefandjurkic.github.io/zeroengine/");
+    if (u) openUrl(u);
+});
+document.getElementById("link-repo").addEventListener("click", (e) => {
+    e.preventDefault();
+    openUrl("https://github.com/StefanDjurkic/zeroengine");
+});
+
+// ---- bridge status ----
+async function refreshBridge() {
+    const msgEl  = document.getElementById("bridge-msg");
+    const chipEl = document.getElementById("chip-bridge");
+    const jsEl   = document.getElementById("bridge-jspp");
+    const cxEl   = document.getElementById("bridge-cxx");
+    if (!invoke) {
+        msgEl.textContent = "Tauri bridge not available.";
+        chipEl.textContent = "offline"; chipEl.className = "chip err";
+        return;
+    }
+    chipEl.textContent = "checking"; chipEl.className = "chip";
+    try {
+        const info = await invoke("bridge_info");
+        jsEl.innerHTML = "jspp: <b>" + (info.has_jspp ? info.jspp_path : "missing") + "</b>";
+        cxEl.innerHTML = "compiler: <b>" + (info.has_cxx ? (info.cxx_kind + " (" + info.cxx_path + ")") : "missing") + "</b>";
+        if (info.has_jspp && info.has_cxx) {
+            msgEl.textContent = "Ready. Your JSPP gets compiled to C++ and run as a native binary on this machine.";
+            chipEl.textContent = "online"; chipEl.className = "chip ok";
+        } else if (!info.has_jspp && !info.has_cxx) {
+            msgEl.textContent = "Missing both 'jspp' and a C++ compiler. Add them to PATH or bundle jspp next to this app.";
+            chipEl.textContent = "missing tools"; chipEl.className = "chip err";
+        } else if (!info.has_jspp) {
+            msgEl.textContent = "C++ compiler OK, but 'jspp' was not found. Place it next to ZeroEngine.exe or on PATH.";
+            chipEl.textContent = "no jspp"; chipEl.className = "chip warn";
+        } else {
+            msgEl.textContent = "JSPP OK, but no C++ compiler on PATH. Install g++/clang++/MSVC to enable native runs.";
+            chipEl.textContent = "no compiler"; chipEl.className = "chip warn";
+        }
+    } catch (err) {
+        msgEl.textContent = "bridge_info failed: " + (err?.message || err);
+        chipEl.textContent = "error"; chipEl.className = "chip err";
+    }
+}
+document.getElementById("btn-rescan").addEventListener("click", refreshBridge);
+document.getElementById("tile-bridge").addEventListener("click", refreshBridge);
+refreshBridge();
+</script>
+</body>
+</html>

@@ -6,6 +6,8 @@
 
 **🎮 Live demo:** https://stefandjurkic.github.io/zeroengine/ — spins up the WebAssembly runtime and renders the 3D cube straight from the browser.
 
+**🖥️ Desktop app:** [Download ZeroEngine Desktop](https://github.com/StefanDjurkic/zeroengine/releases/latest) — a Tauri shell that *is* a browser *and* a JSPP playground *and* a local compile bridge. Inside the desktop app, the playground's "Run as compiled C++" button sends your editor source through the JSPP compiler, builds the resulting C++ with your local toolchain (`g++` / `clang++` / `cl`), and executes the native binary. Real C++, really running, from whatever you just typed. See [`desktop/`](./desktop/) for details.
+
 A browser-native game engine prototype written in Rust, targeting WebAssembly + WebGPU via [`wgpu`](https://github.com/gfx-rs/wgpu). Client and server share a single Rust workspace so network messages, components, and constants are compile-time checked on both sides.
 
 ZeroEngine is also the **browser host** for the [JSPP](https://github.com/StefanDjurkic/jspp) language. JSPP programs can run in the ZeroEngine browser page and use its drawing builtins (`drawRect`, `drawCircle`, `drawLine`, `clear`).
