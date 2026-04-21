@@ -1,5 +1,8 @@
 # ZeroEngine
 
+[![CI](https://github.com/StefanDjurkic/zeroengine/actions/workflows/ci.yml/badge.svg)](https://github.com/StefanDjurkic/zeroengine/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A browser-native game engine prototype written in Rust, targeting WebAssembly + WebGPU via [`wgpu`](https://github.com/gfx-rs/wgpu). Client and server share a single Rust workspace so network messages, components, and constants are compile-time checked on both sides.
 
 ZeroEngine is also the **browser host** for the [JSPP](https://github.com/StefanDjurkic/jspp) language. JSPP programs can run in the ZeroEngine browser page and use its drawing builtins (`drawRect`, `drawCircle`, `drawLine`, `clear`).
