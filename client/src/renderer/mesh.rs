@@ -8,8 +8,7 @@ use zero_engine_shared::{EngineError, EngineResult};
 pub const BOOTSTRAP_MODEL_PATH: &str = "assets/models/bootstrap_cube.glb";
 pub const BUILTIN_CUBE_ALIAS: &str = "builtin:cube";
 
-const BOOTSTRAP_MODEL_BYTES: &[u8] =
-    include_bytes!("../../../assets/models/bootstrap_cube.glb");
+const BOOTSTRAP_MODEL_BYTES: &[u8] = include_bytes!("../../../assets/models/bootstrap_cube.glb");
 
 #[derive(Component, Clone, Debug, PartialEq, Eq)]
 pub struct Mesh {

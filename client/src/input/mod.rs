@@ -54,22 +54,19 @@ impl Default for InputModule {
 #[cfg(target_arch = "wasm32")]
 impl BrowserInputBindings {
     fn teardown(self) {
-        let _ = self.window.remove_event_listener_with_callback(
-            "keydown",
-            self.keydown.as_ref().unchecked_ref(),
-        );
-        let _ = self.window.remove_event_listener_with_callback(
-            "keyup",
-            self.keyup.as_ref().unchecked_ref(),
-        );
+        let _ = self
+            .window
+            .remove_event_listener_with_callback("keydown", self.keydown.as_ref().unchecked_ref());
+        let _ = self
+            .window
+            .remove_event_listener_with_callback("keyup", self.keyup.as_ref().unchecked_ref());
         let _ = self.window.remove_event_listener_with_callback(
             "mousemove",
             self.mousemove.as_ref().unchecked_ref(),
         );
-        let _ = self.canvas.remove_event_listener_with_callback(
-            "click",
-            self.click.as_ref().unchecked_ref(),
-        );
+        let _ = self
+            .canvas
+            .remove_event_listener_with_callback("click", self.click.as_ref().unchecked_ref());
     }
 }
 
@@ -196,7 +193,12 @@ impl Module for InputModule {
         Ok(())
     }
 
-    fn update(&mut self, world: &mut World, _resources: &mut EngineResources, _dt: f32) -> EngineResult<()> {
+    fn update(
+        &mut self,
+        world: &mut World,
+        _resources: &mut EngineResources,
+        _dt: f32,
+    ) -> EngineResult<()> {
         if let Some(mut input_state) = world.get_resource_mut::<InputState>() {
             #[cfg(target_arch = "wasm32")]
             {
@@ -234,7 +236,11 @@ impl Module for InputModule {
         Ok(())
     }
 
-    fn shutdown(&mut self, world: &mut World, _resources: &mut EngineResources) -> EngineResult<()> {
+    fn shutdown(
+        &mut self,
+        world: &mut World,
+        _resources: &mut EngineResources,
+    ) -> EngineResult<()> {
         #[cfg(target_arch = "wasm32")]
         if let Some(bindings) = self.browser_bindings.take() {
             bindings.teardown();

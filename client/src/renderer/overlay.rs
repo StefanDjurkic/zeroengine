@@ -1,6 +1,5 @@
 /// 2D overlay renderer — draws script-generated shapes on top of the 3D scene.
 /// Uses a simple vertex-colored triangle pipeline with no depth testing.
-
 use bytemuck::{Pod, Zeroable};
 use std::f32::consts::PI;
 use wgpu::util::DeviceExt;
@@ -31,25 +30,22 @@ impl OverlayRenderer {
     pub fn new(device: &wgpu::Device, surface_format: wgpu::TextureFormat) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("ZeroEngine Overlay 2D Shader"),
-            source: wgpu::ShaderSource::Wgsl(
-                include_str!("shaders/overlay_2d.wgsl").into(),
-            ),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/overlay_2d.wgsl").into()),
         });
 
-        let bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("ZeroEngine Overlay Bind Group Layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                }],
-            });
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("ZeroEngine Overlay Bind Group Layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
 
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("ZeroEngine Overlay Uniform Buffer"),
@@ -238,13 +234,31 @@ fn color_f32(c: u8) -> f32 {
 fn push_rect(verts: &mut Vec<OverlayVertex>, x: f32, y: f32, w: f32, h: f32, r: u8, g: u8, b: u8) {
     let color = [color_f32(r), color_f32(g), color_f32(b), 1.0];
     // Two triangles for a quad
-    verts.push(OverlayVertex { position: [x, y], color });
-    verts.push(OverlayVertex { position: [x + w, y], color });
-    verts.push(OverlayVertex { position: [x + w, y + h], color });
+    verts.push(OverlayVertex {
+        position: [x, y],
+        color,
+    });
+    verts.push(OverlayVertex {
+        position: [x + w, y],
+        color,
+    });
+    verts.push(OverlayVertex {
+        position: [x + w, y + h],
+        color,
+    });
 
-    verts.push(OverlayVertex { position: [x, y], color });
-    verts.push(OverlayVertex { position: [x + w, y + h], color });
-    verts.push(OverlayVertex { position: [x, y + h], color });
+    verts.push(OverlayVertex {
+        position: [x, y],
+        color,
+    });
+    verts.push(OverlayVertex {
+        position: [x + w, y + h],
+        color,
+    });
+    verts.push(OverlayVertex {
+        position: [x, y + h],
+        color,
+    });
 }
 
 fn push_circle(verts: &mut Vec<OverlayVertex>, cx: f32, cy: f32, radius: f32, r: u8, g: u8, b: u8) {
@@ -253,7 +267,10 @@ fn push_circle(verts: &mut Vec<OverlayVertex>, cx: f32, cy: f32, radius: f32, r:
     for i in 0..segments {
         let angle0 = 2.0 * PI * (i as f32) / (segments as f32);
         let angle1 = 2.0 * PI * ((i + 1) as f32) / (segments as f32);
-        verts.push(OverlayVertex { position: [cx, cy], color });
+        verts.push(OverlayVertex {
+            position: [cx, cy],
+            color,
+        });
         verts.push(OverlayVertex {
             position: [cx + radius * angle0.cos(), cy + radius * angle0.sin()],
             color,
@@ -265,7 +282,16 @@ fn push_circle(verts: &mut Vec<OverlayVertex>, cx: f32, cy: f32, radius: f32, r:
     }
 }
 
-fn push_line(verts: &mut Vec<OverlayVertex>, x1: f32, y1: f32, x2: f32, y2: f32, r: u8, g: u8, b: u8) {
+fn push_line(
+    verts: &mut Vec<OverlayVertex>,
+    x1: f32,
+    y1: f32,
+    x2: f32,
+    y2: f32,
+    r: u8,
+    g: u8,
+    b: u8,
+) {
     let color = [color_f32(r), color_f32(g), color_f32(b), 1.0];
     let dx = x2 - x1;
     let dy = y2 - y1;
@@ -274,11 +300,29 @@ fn push_line(verts: &mut Vec<OverlayVertex>, x1: f32, y1: f32, x2: f32, y2: f32,
     let nx = -dy / len * half_width;
     let ny = dx / len * half_width;
 
-    verts.push(OverlayVertex { position: [x1 + nx, y1 + ny], color });
-    verts.push(OverlayVertex { position: [x1 - nx, y1 - ny], color });
-    verts.push(OverlayVertex { position: [x2 + nx, y2 + ny], color });
+    verts.push(OverlayVertex {
+        position: [x1 + nx, y1 + ny],
+        color,
+    });
+    verts.push(OverlayVertex {
+        position: [x1 - nx, y1 - ny],
+        color,
+    });
+    verts.push(OverlayVertex {
+        position: [x2 + nx, y2 + ny],
+        color,
+    });
 
-    verts.push(OverlayVertex { position: [x1 - nx, y1 - ny], color });
-    verts.push(OverlayVertex { position: [x2 - nx, y2 - ny], color });
-    verts.push(OverlayVertex { position: [x2 + nx, y2 + ny], color });
+    verts.push(OverlayVertex {
+        position: [x1 - nx, y1 - ny],
+        color,
+    });
+    verts.push(OverlayVertex {
+        position: [x2 - nx, y2 - ny],
+        color,
+    });
+    verts.push(OverlayVertex {
+        position: [x2 + nx, y2 + ny],
+        color,
+    });
 }

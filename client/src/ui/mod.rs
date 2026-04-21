@@ -26,7 +26,12 @@ impl Module for UiModule {
         Ok(())
     }
 
-    fn update(&mut self, world: &mut World, resources: &mut EngineResources, _dt: f32) -> EngineResult<()> {
+    fn update(
+        &mut self,
+        world: &mut World,
+        resources: &mut EngineResources,
+        _dt: f32,
+    ) -> EngineResult<()> {
         if let Some(mut ui_state) = world.get_resource_mut::<UiState>() {
             ui_state.status_text = resources.status_line.clone();
         }
@@ -34,7 +39,11 @@ impl Module for UiModule {
         Ok(())
     }
 
-    fn shutdown(&mut self, world: &mut World, _resources: &mut EngineResources) -> EngineResult<()> {
+    fn shutdown(
+        &mut self,
+        world: &mut World,
+        _resources: &mut EngineResources,
+    ) -> EngineResult<()> {
         if let Some(mut ui_state) = world.get_resource_mut::<UiState>() {
             ui_state.status_text.clear();
         }

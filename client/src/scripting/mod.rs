@@ -1,6 +1,5 @@
 /// Script bridge module — receives 2D draw commands from the JS++ interpreter
 /// running in the same browser context, and queues them for the renderer.
-
 use std::cell::RefCell;
 
 /// A 2D shape command queued by JS++ script code.

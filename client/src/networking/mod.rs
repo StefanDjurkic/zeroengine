@@ -50,7 +50,12 @@ impl Module for NetworkingModule {
         Ok(())
     }
 
-    fn update(&mut self, world: &mut World, _resources: &mut EngineResources, _dt: f32) -> EngineResult<()> {
+    fn update(
+        &mut self,
+        world: &mut World,
+        _resources: &mut EngineResources,
+        _dt: f32,
+    ) -> EngineResult<()> {
         if let Some(mut network_state) = world.get_resource_mut::<NetworkState>() {
             network_state.connection.phase = ConnectionPhase::Disconnected;
             let _ = network_state.prediction.len();
@@ -62,7 +67,11 @@ impl Module for NetworkingModule {
         Ok(())
     }
 
-    fn shutdown(&mut self, world: &mut World, _resources: &mut EngineResources) -> EngineResult<()> {
+    fn shutdown(
+        &mut self,
+        world: &mut World,
+        _resources: &mut EngineResources,
+    ) -> EngineResult<()> {
         if let Some(mut network_state) = world.get_resource_mut::<NetworkState>() {
             network_state.connection.phase = ConnectionPhase::Disconnected;
             let _ = network_state.prediction.len();

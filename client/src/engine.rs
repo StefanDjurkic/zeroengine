@@ -7,11 +7,7 @@ use crate::{
     input::InputModule,
     networking::NetworkingModule,
     renderer::{
-        RendererModule,
-        camera::Camera,
-        lighting::DirectionalLight,
-        mesh::Mesh,
-        texture::Material,
+        RendererModule, camera::Camera, lighting::DirectionalLight, mesh::Mesh, texture::Material,
     },
     systems,
     ui::UiModule,

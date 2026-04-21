@@ -15,8 +15,8 @@ pub fn apply_movement(world: &mut World, dt: f32) {
 
     for (mut transform, mut velocity, mut camera) in query.iter_mut(world) {
         camera.yaw_radians -= look_delta.x * camera.look_sensitivity;
-        camera.pitch_radians = (camera.pitch_radians - look_delta.y * camera.look_sensitivity)
-            .clamp(-1.45, 1.45);
+        camera.pitch_radians =
+            (camera.pitch_radians - look_delta.y * camera.look_sensitivity).clamp(-1.45, 1.45);
 
         let orientation = camera.orientation();
         transform.rotation = orientation.to_array();
@@ -25,7 +25,8 @@ pub fn apply_movement(world: &mut World, dt: f32) {
         let right = camera.right_vector();
         let flat_forward = Vec3::new(forward.x, 0.0, forward.z).normalize_or_zero();
         let flat_right = Vec3::new(right.x, 0.0, right.z).normalize_or_zero();
-        let desired_direction = (flat_right * movement.x + flat_forward * movement.y).normalize_or_zero();
+        let desired_direction =
+            (flat_right * movement.x + flat_forward * movement.y).normalize_or_zero();
         let desired_velocity = desired_direction * camera.move_speed.min(MAX_PLAYER_SPEED);
         velocity.linear = desired_velocity.to_array();
         transform.translate(desired_velocity * dt);

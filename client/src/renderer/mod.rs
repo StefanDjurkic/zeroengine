@@ -124,7 +124,12 @@ impl Module for RendererModule {
         Ok(())
     }
 
-    fn update(&mut self, world: &mut World, resources: &mut EngineResources, _dt: f32) -> EngineResult<()> {
+    fn update(
+        &mut self,
+        world: &mut World,
+        resources: &mut EngineResources,
+        _dt: f32,
+    ) -> EngineResult<()> {
         let mut query = world.query::<(&Transform, &mesh::Mesh, &texture::Material)>();
         self.visible_entities = query.iter(world).count();
 
@@ -137,7 +142,8 @@ impl Module for RendererModule {
                 match &mut *web_state {
                     WebRendererState::Uninitialized => {
                         pending_asset_path = Some(bootstrap_mesh_asset_path(world)?);
-                        resources.status_line = "Renderer waiting for WebGPU initialization".to_string();
+                        resources.status_line =
+                            "Renderer waiting for WebGPU initialization".to_string();
                     }
                     WebRendererState::Initializing => {
                         resources.status_line = "Renderer initializing WebGPU".to_string();
@@ -174,7 +180,11 @@ impl Module for RendererModule {
         Ok(())
     }
 
-    fn shutdown(&mut self, _world: &mut World, _resources: &mut EngineResources) -> EngineResult<()> {
+    fn shutdown(
+        &mut self,
+        _world: &mut World,
+        _resources: &mut EngineResources,
+    ) -> EngineResult<()> {
         self.visible_entities = 0;
 
         #[cfg(target_arch = "wasm32")]

@@ -1,11 +1,15 @@
 use bytemuck::{Pod, Zeroable};
 use glam::{Mat4, Vec3};
 use wasm_bindgen::JsCast;
-use wgpu::util::DeviceExt;
 use web_sys::HtmlCanvasElement;
+use wgpu::util::DeviceExt;
 use zero_engine_shared::{EngineError, EngineResult};
 
-use super::{RenderScene, mesh::{self, MeshTextureData, MeshVertex}, overlay::OverlayRenderer};
+use super::{
+    RenderScene,
+    mesh::{self, MeshTextureData, MeshVertex},
+    overlay::OverlayRenderer,
+};
 use crate::scripting;
 
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth24Plus;
@@ -537,7 +541,8 @@ fn create_depth_target(device: &wgpu::Device, config: &wgpu::SurfaceConfiguratio
 }
 
 fn engine_canvas() -> EngineResult<HtmlCanvasElement> {
-    let window = web_sys::window().ok_or_else(|| EngineError::browser("browser window was not available"))?;
+    let window = web_sys::window()
+        .ok_or_else(|| EngineError::browser("browser window was not available"))?;
     let document = window
         .document()
         .ok_or_else(|| EngineError::browser("browser document was not available"))?;
@@ -551,7 +556,8 @@ fn engine_canvas() -> EngineResult<HtmlCanvasElement> {
 }
 
 fn resize_canvas_to_window(canvas: &HtmlCanvasElement) -> EngineResult<CanvasSize> {
-    let window = web_sys::window().ok_or_else(|| EngineError::browser("browser window was not available"))?;
+    let window = web_sys::window()
+        .ok_or_else(|| EngineError::browser("browser window was not available"))?;
     let logical_width = window
         .inner_width()
         .map_err(|_| EngineError::browser("failed to read browser width"))?

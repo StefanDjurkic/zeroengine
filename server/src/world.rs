@@ -76,7 +76,7 @@ impl ServerApp {
         let persisted_entities = systems::run_server_systems(&mut self.world)?;
         self.current_tick += 1;
 
-        if self.current_tick % TICK_RATE as u64 == 0 {
+        if self.current_tick.is_multiple_of(TICK_RATE as u64) {
             println!(
                 "Tick {} complete. Active sessions: {}. Persistable entities: {}.",
                 self.current_tick,

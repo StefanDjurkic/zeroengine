@@ -15,13 +15,33 @@ pub enum ClientMessage {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum ServerMessage {
-    Welcome { your_entity_id: EntityId, tick: Tick },
-    WorldSnapshot { tick: Tick, entities: Vec<EntitySnapshot> },
-    EntitySpawn { entity_id: EntityId, components: EntitySnapshot },
-    EntityDespawn { entity_id: EntityId },
-    EntityUpdate { entity_id: EntityId, components: ComponentDelta },
-    ChatReceive { sender: String, channel: String, text: String },
-    Rejected { reason: String },
+    Welcome {
+        your_entity_id: EntityId,
+        tick: Tick,
+    },
+    WorldSnapshot {
+        tick: Tick,
+        entities: Vec<EntitySnapshot>,
+    },
+    EntitySpawn {
+        entity_id: EntityId,
+        components: EntitySnapshot,
+    },
+    EntityDespawn {
+        entity_id: EntityId,
+    },
+    EntityUpdate {
+        entity_id: EntityId,
+        components: ComponentDelta,
+    },
+    ChatReceive {
+        sender: String,
+        channel: String,
+        text: String,
+    },
+    Rejected {
+        reason: String,
+    },
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
