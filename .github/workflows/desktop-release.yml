@@ -87,7 +87,9 @@ jobs:
           ls -la desktop/resources
 
       - name: Install Tauri CLI
-        run: cargo install tauri-cli --version "^2" --locked
+        uses: taiki-e/install-action@v2
+        with:
+          tool: tauri-cli
 
       - name: Generate icons (from placeholder if missing)
         shell: bash

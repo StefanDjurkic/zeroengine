@@ -647,6 +647,34 @@ cppModal.addEventListener("click", (e) => { if (e.target === cppModal) cppModal.
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") cppModal.style.display = "none"; });
 cppTabs.forEach(t => t.addEventListener("click", () => { cppCurrentTab = t.dataset.ctab; renderCppModal(); }));
 
+// ---------- desktop-menu wiring ----------
+if (inTauri() && window.__TAURI__?.event?.listen) {
+    const { listen } = window.__TAURI__.event;
+    listen("menu://navigate", (e) => {
+        if (typeof e.payload === "string" && e.payload) window.location.href = e.payload;
+    });
+    listen("menu://new-browser", () => {
+        const u = prompt("URL:", "https://stefandjurkic.github.io/zeroengine/");
+        if (u && window.__TAURI__?.core?.invoke) {
+            window.__TAURI__.core.invoke("open_browser", { url: u }).catch(() => {});
+        }
+    });
+    listen("menu://about", () => {
+        alert("ZeroEngine Playground\ngithub.com/StefanDjurkic/zeroengine");
+    });
+}
+
+// ---------- persist editor source ----------
+try {
+    const saved = localStorage.getItem("zeroengine.jspp-source");
+    if (saved && editor && editor.value !== saved) editor.value = saved;
+} catch {}
+if (editor) {
+    editor.addEventListener("input", () => {
+        try { localStorage.setItem("zeroengine.jspp-source", editor.value); } catch {}
+    });
+}
+
 loadScene("hello");
 </script>
 

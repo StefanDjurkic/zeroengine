@@ -108,11 +108,12 @@ body {
     <div class="brand">
         <span class="dot"></span>
         <span class="z">ZeroEngine</span>
-        <span class="sub">v0.1.0</span>
+        <span class="sub">v0.1.1</span>
     </div>
     <form id="addr-form" class="addr-wrap">
         <input id="addr" class="addr" placeholder="Enter a URL and press Enter to open in a new ZeroEngine window..." spellcheck="false" autocomplete="off">
         <button class="btn primary" type="submit">Go</button>
+        <button id="btn-system" class="btn" type="button" title="Open URL in your system default browser instead.">System</button>
     </form>
     <button id="btn-playground" class="btn">Playground</button>
 </div>
@@ -181,6 +182,14 @@ if (!tauri) {
         "This is the ZeroEngine desktop shell. Open it inside the ZeroEngine application to use the bridge.";
 }
 const invoke = tauri?.core?.invoke;
+const listen = tauri?.event?.listen;
+
+// ---- restore last-used URL ----
+const addrEl = document.getElementById("addr");
+try {
+    const saved = localStorage.getItem("zeroengine.last-url");
+    if (saved) addrEl.value = saved;
+} catch {}
 
 // ---- navigate to playground (same window) ----
 function openPlayground() {
@@ -190,19 +199,43 @@ document.getElementById("btn-playground").addEventListener("click", openPlaygrou
 document.getElementById("tile-playground").addEventListener("click", openPlayground);
 
 // ---- browser: URL bar + tile ----
-async function openUrl(raw) {
-    if (!invoke) return;
+function normalizeUrl(raw) {
     const url = (raw || "").trim();
+    if (!url) return "";
+    if (/^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\//.test(url)) return url;
+    // No scheme. If it looks like a hostname or path, add https://. Otherwise
+    // treat as a DuckDuckGo search.
+    const looksLikeHost = /^[\w.\-]+(\:\d+)?(\/.*)?$/.test(url) && url.includes(".");
+    return looksLikeHost
+        ? "https://" + url
+        : "https://duckduckgo.com/?q=" + encodeURIComponent(url);
+}
+async function openUrl(raw, { system = false } = {}) {
+    const url = normalizeUrl(raw);
     if (!url) return;
+    try { localStorage.setItem("zeroengine.last-url", raw); } catch {}
+    if (!invoke) { alert("Tauri unavailable"); return; }
     try {
-        await invoke("open_browser", { url });
+        if (system) {
+            // tauri-plugin-opener
+            if (tauri?.opener?.openUrl) {
+                await tauri.opener.openUrl(url);
+            } else {
+                await invoke("plugin:opener|open_url", { url });
+            }
+        } else {
+            await invoke("open_browser", { url });
+        }
     } catch (err) {
         alert("Could not open URL: " + (err?.message || err));
     }
 }
 document.getElementById("addr-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    openUrl(document.getElementById("addr").value);
+    openUrl(addrEl.value);
+});
+document.getElementById("btn-system").addEventListener("click", () => {
+    openUrl(addrEl.value, { system: true });
 });
 document.getElementById("tile-browser").addEventListener("click", () => {
     const u = prompt("URL to open in a new ZeroEngine browser window:", "https://stefandjurkic.github.io/zeroengine/");
@@ -210,7 +243,7 @@ document.getElementById("tile-browser").addEventListener("click", () => {
 });
 document.getElementById("link-repo").addEventListener("click", (e) => {
     e.preventDefault();
-    openUrl("https://github.com/StefanDjurkic/zeroengine");
+    openUrl("https://github.com/StefanDjurkic/zeroengine", { system: true });
 });
 
 // ---- bridge status ----
@@ -250,6 +283,29 @@ async function refreshBridge() {
 document.getElementById("btn-rescan").addEventListener("click", refreshBridge);
 document.getElementById("tile-bridge").addEventListener("click", refreshBridge);
 refreshBridge();
+
+// ---- native menu -> frontend wiring ----
+if (listen) {
+    listen("menu://navigate", (e) => {
+        if (typeof e.payload === "string" && e.payload) {
+            window.location.href = e.payload;
+        }
+    });
+    listen("menu://new-browser", () => {
+        const u = prompt("URL to open in a new ZeroEngine browser window:", addrEl.value || "https://stefandjurkic.github.io/zeroengine/");
+        if (u) openUrl(u);
+    });
+    listen("menu://about", () => {
+        alert(
+            "ZeroEngine v0.1.1\n\n" +
+            "Desktop shell + browser + JSPP playground + native C++ compile bridge.\n\n" +
+            "github.com/StefanDjurkic/zeroengine"
+        );
+    });
+    listen("menu://open-url", (e) => {
+        if (typeof e.payload === "string") openUrl(e.payload, { system: true });
+    });
+}
 </script>
 </body>
 </html>
