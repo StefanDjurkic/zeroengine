@@ -39,6 +39,8 @@ Hit **View compiled C++** in the toolbar to pop open a viewer over the four comp
 
 Four JSPP programs round-tripped through the **full** `jspp -> .cpp -> native binary` pipeline. Each folder commits `source.jspp`, `generated.cpp` (what the JSPP compiler emitted, verbatim), and `expected.txt` (what the compiled native binary actually printed). `demos/compiled/verify.sh` rebuilds every artifact from scratch and diffs against the committed copies, and the `jspp-pipeline` CI job runs it on every push.
 
+The same `generated.cpp` is **also compiled to WebAssembly** via Emscripten (`demos/compiled/verify_wasm.sh` / the `jspp-pipeline` CI job / the Pages deploy). The playground has a **run wasm** tab that imports `demo.mjs` in the browser, calls `main()`, captures its stdout, and live-diffs against `expected.txt`. Same C++, two targets (native and wasm), same output.
+
 | Demo | What it does |
 |---|---|
 | `hello` | Smallest possible program: `print("Hello, World!")`. Verifies `print` / string literal codegen end to end. |
@@ -54,7 +56,9 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel
 
 # from this repo
-demos/compiled/verify.sh /path/to/jspp/build/jspp
+demos/compiled/verify.sh /path/to/jspp/build/jspp         # native
+source /path/to/emsdk/emsdk_env.sh                        # one-time
+demos/compiled/verify_wasm.sh                             # wasm in node
 ```
 
 ## Tech stack

@@ -137,10 +137,11 @@ textarea#editor { flex:1 1 auto; min-height:160px;
             <button class="pill modal-tab active" data-tab="jspp">source.jspp</button>
             <button class="pill modal-tab" data-tab="cpp">generated.cpp</button>
             <button class="pill modal-tab" data-tab="out">stdout</button>
+            <button class="pill modal-tab" data-tab="wasm">run wasm</button>
         </div>
         <pre id="modal-body" style="margin:0; padding:16px 18px; flex:1; overflow:auto; font-family:'Fira Code', Consolas, Monaco, monospace; font-size:12px; line-height:1.5; color:#d6deeb; background:#080c16; white-space:pre; tab-size:4;"></pre>
         <div style="padding:10px 18px; border-top:1px solid var(--stroke); font-size:11px; color:var(--muted);">
-            Reproduce yourself: <code style="color:#cbd5e1;">jspp source.jspp -o out.cpp &amp;&amp; g++ -std=c++20 -O2 out.cpp -o demo &amp;&amp; ./demo</code>. Source lives at <a href="https://github.com/StefanDjurkic/zeroengine/tree/main/demos/compiled" target="_blank" rel="noopener" style="color:var(--accent);">demos/compiled</a>.
+            Two proofs, one source: <code style="color:#cbd5e1;">jspp source.jspp -o out.cpp</code> then either <code style="color:#cbd5e1;">g++ -std=c++20 out.cpp</code> (native) or <code style="color:#cbd5e1;">emcc -std=c++20 out.cpp -o demo.mjs</code> (wasm - the "run wasm" tab above). CI diffs both against <code style="color:#cbd5e1;">expected.txt</code>. Source at <a href="https://github.com/StefanDjurkic/zeroengine/tree/main/demos/compiled" target="_blank" rel="noopener" style="color:var(--accent);">demos/compiled</a>.
         </div>
     </div>
 </div>
@@ -607,6 +608,10 @@ async function fetchArtifacts(name) {
 async function renderModal() {
     demoPicks.forEach(p => p.classList.toggle("active", p.dataset.demo === currentDemo));
     modalTabs.forEach(t => t.classList.toggle("active", t.dataset.tab === currentTab));
+    if (currentTab === "wasm") {
+        await runWasm(currentDemo);
+        return;
+    }
     modalBody.textContent = "Loading " + currentDemo + "/" + (currentTab === "jspp" ? "source.jspp" : currentTab === "cpp" ? "generated.cpp" : "expected.txt") + "...";
     try {
         const art = await fetchArtifacts(currentDemo);
@@ -615,6 +620,63 @@ async function renderModal() {
     } catch (err) {
         modalBody.textContent = "Failed to load: " + err.message + "\n\nThis works only on the deployed site. If you opened index.html locally, open the live version instead: https://stefandjurkic.github.io/zeroengine/jspp.html";
     }
+}
+
+// ---------- Run the demo's wasm ----------
+// The deployed site ships /demos/compiled/<name>/demo.mjs (+ demo.wasm),
+// produced in CI by: emcc -std=c++20 -O2 generated.cpp -o demo.mjs -sMODULARIZE
+// -sEXPORT_ES6 -sENVIRONMENT=web,worker -sINVOKE_RUN=0.
+// We import it as an ES module, hand it a print callback, call main(),
+// and compare the captured stdout to the committed expected.txt. Green
+// means the same C++ produces the same stdout whether you build it native
+// with g++ or as wasm with emcc.
+async function runWasm(name) {
+    modalBody.textContent = "Fetching wasm module for " + name + "...";
+    let art;
+    try {
+        art = await fetchArtifacts(name);
+    } catch (err) {
+        modalBody.textContent = "Could not load expected stdout: " + err.message;
+        return;
+    }
+    let factory;
+    try {
+        const mod = await import(/* @vite-ignore */ "./demos/compiled/" + name + "/demo.mjs");
+        factory = mod.default;
+    } catch (err) {
+        modalBody.textContent =
+            "Failed to load demos/compiled/" + name + "/demo.mjs\n\n" +
+            err.message + "\n\n" +
+            "This works only on the deployed site after the wasm build completes. " +
+            "If you are running locally without Pages deploy, the .mjs/.wasm files will not exist.";
+        return;
+    }
+    modalBody.textContent = "Instantiating wasm and calling main()...";
+    const lines = [];
+    try {
+        const instance = await factory({
+            print:    (s) => lines.push(s),
+            printErr: (s) => lines.push(s),
+            noInitialRun: true,
+            locateFile: (p) => "./demos/compiled/" + name + "/" + p,
+        });
+        instance.callMain([]);
+    } catch (err) {
+        modalBody.textContent = "wasm runtime error:\n" + (err && err.message ? err.message : err);
+        return;
+    }
+    const actual = lines.join("\n") + "\n";
+    const expected = art.out;
+    const matches = actual === expected;
+    const header = matches
+        ? "[OK] wasm stdout matches expected.txt byte-for-byte.\n"
+          + "     Same C++ file, compiled native (g++) and to wasm (emcc); same output.\n"
+          + "     (CI re-verifies this on every push.)\n"
+          + "--------------------------------------------------------------------\n"
+        : "[DIFF] wasm stdout diverged from expected.txt. Showing wasm output below.\n"
+          + "--------------------------------------------------------------------\n";
+    modalBody.textContent = header + actual;
+    modalBody.scrollTop = 0;
 }
 
 btnCompiled.addEventListener("click", () => { modal.style.display = "flex"; renderModal(); });

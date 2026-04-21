@@ -107,7 +107,18 @@ jobs:
             exit 1
           fi
 
-      - name: Verify all compiled demos reproduce bit-for-bit
+      - name: Verify all compiled demos reproduce bit-for-bit (native)
         run: |
           chmod +x demos/compiled/verify.sh
           demos/compiled/verify.sh "${{ steps.locate.outputs.bin }}"
+
+      - name: Setup emsdk
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.64
+          actions-cache-folder: emsdk-cache
+
+      - name: Verify all compiled demos reproduce bit-for-bit (wasm via node)
+        run: |
+          chmod +x demos/compiled/verify_wasm.sh
+          demos/compiled/verify_wasm.sh "$PWD/_wasm_out"
