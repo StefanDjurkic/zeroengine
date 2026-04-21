@@ -1,2 +1,6 @@
-# Tauri build artifacts
-desktop/gen/schemas/
+# Tauri build artifacts (paths are relative to this .gitignore file)
+gen/schemas/
+
+# Staged jspp binary — built fresh by the release CI, no need to commit.
+resources/jspp
+resources/jspp.exe
