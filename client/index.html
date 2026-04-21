@@ -3,290 +3,323 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ZeroEngine — browser-native engine powered by JSPP</title>
-    <meta name="description" content="A Rust + WebGPU game engine you can script with JSPP — JavaScript syntax, C++ performance.">
+    <title>ZeroEngine — 3D in the browser, scripted with JSPP</title>
+    <meta name="description" content="A Rust + WebGPU engine and a JSPP scripting playground — JavaScript syntax, C++ performance, in your browser.">
     <style>
         :root {
             color-scheme: dark;
             font-family: "Trebuchet MS", "Segoe UI", sans-serif;
             background:
-                radial-gradient(circle at top left,  rgba(255, 127, 80, 0.32), transparent 32%),
-                radial-gradient(circle at top right, rgba(78, 197, 201, 0.24), transparent 34%),
-                linear-gradient(180deg, #050913 0%, #0d1524 45%, #101a2a 100%);
+                radial-gradient(circle at 15% 10%,  rgba(255, 127, 80, 0.28), transparent 35%),
+                radial-gradient(circle at 85% 15%,  rgba(78, 197, 201, 0.22), transparent 38%),
+                linear-gradient(180deg, #05070f 0%, #0a1324 55%, #0e1a2e 100%);
             color: #f3f7ff;
         }
-
         *  { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; }
+        html, body { margin: 0; padding: 0; height: 100%; }
+        body { min-height: 100vh; overflow: hidden; }
 
-        body {
-            min-height: 100vh;
-            overflow: hidden;
-        }
-
-        #engine-canvas {
+        #scene {
             position: fixed;
             inset: 0;
             width: 100vw;
             height: 100vh;
             display: block;
-            cursor: crosshair;
+            z-index: 1;
         }
 
-        /* --- Click ripple overlay ------------------------------------- */
-        #ripple-layer {
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            z-index: 5;
-        }
-        .ripple {
-            position: absolute;
-            border: 2px solid rgba(154, 227, 223, 0.9);
-            border-radius: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            animation: ripple-grow 0.7s ease-out forwards;
-            box-shadow: 0 0 24px rgba(154, 227, 223, 0.55);
-        }
-        @keyframes ripple-grow {
-            0%   { transform: translate(-50%, -50%) scale(0);   opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(7);   opacity: 0; }
-        }
-
-        /* --- HUD / info card ------------------------------------------ */
+        /* --- HUD ------------------------------------------------------- */
         .hud {
             position: fixed;
             top: 1.5rem;
             left: 1.5rem;
             width: min(34rem, calc(100vw - 3rem));
-            padding: 1.25rem 1.4rem 1.1rem;
+            padding: 1.4rem 1.5rem 1.2rem;
             border: 1px solid rgba(255, 255, 255, 0.16);
             border-radius: 1.25rem;
             background: rgba(8, 13, 24, 0.72);
             backdrop-filter: blur(18px);
             -webkit-backdrop-filter: blur(18px);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
             z-index: 10;
         }
-
         .badge {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
             padding: 0.3rem 0.7rem;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.08);
-            color: #ffcf8d;
-            font-size: 0.78rem;
-            letter-spacing: 0.08em;
+            background: rgba(154, 227, 223, 0.14);
+            color: #9ae3df;
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
+            font-weight: 600;
         }
-
         h1 {
-            margin: 0.85rem 0 0.25rem;
-            font-size: clamp(1.9rem, 3.4vw, 2.6rem);
+            margin: 0.9rem 0 0.3rem;
+            font-size: clamp(2rem, 3.6vw, 2.8rem);
             line-height: 1.02;
+            font-weight: 700;
         }
         .tagline {
-            margin: 0.2rem 0 0.9rem;
-            color: rgba(243, 247, 255, 0.78);
-            font-size: 0.95rem;
+            margin: 0.35rem 0 1rem;
+            color: rgba(243, 247, 255, 0.82);
+            font-size: 0.98rem;
+            line-height: 1.5;
         }
-
         .features {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.45rem 0.9rem;
-            margin: 0.4rem 0 0.85rem;
-            font-size: 0.83rem;
+            gap: 0.45rem 1rem;
+            margin: 0.4rem 0 1rem;
+            font-size: 0.85rem;
             color: rgba(243, 247, 255, 0.86);
         }
         .features span::before {
             content: "▸ ";
             color: #9ae3df;
-            margin-right: 0.15rem;
+            margin-right: 0.2rem;
         }
-
         .actions {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.5rem;
+            gap: 0.55rem;
         }
-        .actions a, .actions button {
+        .actions a {
             font-family: inherit;
-            font-size: 0.86rem;
-            padding: 0.45rem 0.9rem;
-            border-radius: 0.6rem;
+            font-size: 0.88rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.55rem;
             border: 1px solid rgba(255, 255, 255, 0.16);
-            background: rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.05);
             color: #f3f7ff;
             text-decoration: none;
-            cursor: pointer;
-            transition: background 0.15s, border-color 0.15s;
+            transition: background 0.15s, border-color 0.15s, transform 0.08s;
         }
-        .actions a:hover, .actions button:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.28);
-        }
+        .actions a:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.3); }
+        .actions a:active { transform: translateY(1px); }
         .actions a.primary {
-            background: rgba(78, 197, 201, 0.22);
-            border-color: rgba(78, 197, 201, 0.45);
-            color: #baf3ef;
+            background: linear-gradient(135deg, rgba(78, 197, 201, 0.35), rgba(255, 127, 80, 0.22));
+            border-color: rgba(154, 227, 223, 0.5);
+            color: #eafaf8;
+            font-weight: 600;
         }
         .actions a.primary:hover {
-            background: rgba(78, 197, 201, 0.34);
+            background: linear-gradient(135deg, rgba(78, 197, 201, 0.5), rgba(255, 127, 80, 0.32));
         }
 
-        #status {
-            margin-top: 0.75rem;
-            font-size: 0.82rem;
-            color: #9ae3df;
-            opacity: 0.85;
-        }
-
-        /* --- Click hint floating bottom-right ------------------------- */
-        .click-hint {
+        /* --- Click hint pill ------------------------------------------ */
+        .hint {
             position: fixed;
-            bottom: 1.25rem;
-            right: 1.25rem;
-            padding: 0.55rem 0.9rem;
+            bottom: 1.4rem;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.55rem 1rem;
             border-radius: 999px;
-            background: rgba(8, 13, 24, 0.72);
+            background: rgba(8, 13, 24, 0.65);
             border: 1px solid rgba(255, 255, 255, 0.14);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            font-size: 0.78rem;
-            letter-spacing: 0.04em;
-            color: rgba(243, 247, 255, 0.82);
+            font-size: 0.82rem;
+            letter-spacing: 0.03em;
+            color: rgba(243, 247, 255, 0.86);
             z-index: 10;
             pointer-events: none;
-            animation: hint-pulse 2.4s ease-in-out infinite;
+            animation: pulse 2.4s ease-in-out infinite;
         }
-        @keyframes hint-pulse {
-            0%, 100% { transform: translateY(0);       opacity: 0.85; }
-            50%      { transform: translateY(-3px);    opacity: 1;    }
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, 0); opacity: 0.88; }
+            50%      { transform: translate(-50%, -4px); opacity: 1; }
         }
 
-        /* --- Code sample card ---------------------------------------- */
-        .sample {
+        /* --- Footer credits ------------------------------------------- */
+        .credit {
             position: fixed;
-            bottom: 1.5rem;
-            left: 1.5rem;
-            width: min(26rem, calc(100vw - 3rem));
-            padding: 0.9rem 1rem;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 1rem;
-            background: rgba(8, 13, 24, 0.72);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-            font-family: "Consolas", "Menlo", monospace;
-            font-size: 0.76rem;
-            line-height: 1.55;
-            color: #dfe6ef;
+            bottom: 1rem;
+            right: 1.25rem;
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            color: rgba(243, 247, 255, 0.55);
             z-index: 10;
         }
-        .sample .sample-title {
-            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-            font-size: 0.72rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: #9ae3df;
-            margin-bottom: 0.45rem;
-        }
-        .sample pre { margin: 0; white-space: pre-wrap; }
-        .kw { color: #ff9ec0; }
-        .fn { color: #ffcf8d; }
-        .str { color: #9ee39a; }
-        .num { color: #baf3ef; }
-        .com { color: rgba(243, 247, 255, 0.45); font-style: italic; }
+        .credit a { color: inherit; text-decoration: underline; }
 
-        @media (max-width: 860px) {
-            .sample { display: none; }
-            .hud { width: calc(100vw - 2rem); top: 1rem; left: 1rem; padding: 1rem; }
+        @media (max-width: 720px) {
+            .hud { top: 1rem; left: 1rem; width: calc(100vw - 2rem); padding: 1.1rem 1.2rem; }
             .features { grid-template-columns: 1fr; }
+            h1 { font-size: 1.8rem; }
         }
     </style>
 </head>
 <body>
-    <canvas id="engine-canvas"></canvas>
-    <div id="ripple-layer" aria-hidden="true"></div>
+    <canvas id="scene"></canvas>
 
     <section class="hud">
         <span class="badge">Live Demo</span>
-        <h1>ZeroEngine</h1>
+        <h1>ZeroEngine × JSPP</h1>
         <p class="tagline">
-            A browser-native game engine written in Rust, running on WebGPU via WebAssembly —
-            scriptable with <strong>JSPP</strong>, a language with JavaScript syntax and C++ performance.
+            3D in the browser, scripted with a language that reads like JavaScript and compiles to C++.
+            The cube below is real WebGL — click it. Then open the playground to write your own scene in JSPP.
         </p>
 
         <div class="features">
             <span>Rust + WebGPU renderer</span>
-            <span>ECS architecture (<code>bevy_ecs</code>)</span>
+            <span>ECS architecture (bevy_ecs)</span>
             <span>WASM client, native server</span>
             <span>JSPP scripting bridge</span>
-            <span>2D overlay draw API</span>
-            <span>Shared types, no duplication</span>
+            <span>2D overlay + 3D scene</span>
+            <span>Zero-setup browser demo</span>
         </div>
 
         <div class="actions">
             <a class="primary" href="./jspp.html">🎮 Open JSPP Playground →</a>
-            <a href="https://github.com/StefanDjurkic/jspp" target="_blank" rel="noopener">JSPP on GitHub</a>
-            <a href="https://github.com/StefanDjurkic/zeroengine" target="_blank" rel="noopener">ZeroEngine on GitHub</a>
+            <a href="https://github.com/StefanDjurkic/jspp" target="_blank" rel="noopener">JSPP repo</a>
+            <a href="https://github.com/StefanDjurkic/zeroengine" target="_blank" rel="noopener">ZeroEngine repo</a>
         </div>
-
-        <div id="status">Booting WebAssembly runtime…</div>
     </section>
 
-    <aside class="sample">
-        <div class="sample-title">JSPP — runs in the playground</div>
-<pre><span class="com">// JavaScript syntax, C++ performance.</span>
-<span class="kw">function</span> <span class="fn">draw</span>(): <span class="kw">void</span> {
-    <span class="fn">clear</span>(<span class="num">20</span>, <span class="num">25</span>, <span class="num">40</span>);
-    <span class="kw">for</span> (<span class="kw">let</span> i = <span class="num">0</span>; i &lt; <span class="num">12</span>; i++) {
-        <span class="fn">drawCircle</span>(<span class="num">200</span>+i*<span class="num">30</span>, <span class="num">180</span>, <span class="num">14</span>,
-                   <span class="num">80</span>+i*<span class="num">12</span>, <span class="num">200</span>, <span class="num">255</span>);
-    }
-    <span class="fn">print</span>(<span class="str">"Hello from JSPP!"</span>);
-}
-<span class="fn">draw</span>();</pre>
-    </aside>
+    <div class="hint">Click the cube · drag to rotate · scroll to zoom</div>
+    <div class="credit">Stefan Djurkic · <a href="https://github.com/StefanDjurkic" target="_blank" rel="noopener">@StefanDjurkic</a></div>
 
-    <div class="click-hint">Click the scene — the engine is listening</div>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.164.1/build/three.module.js"
+        }
+    }
+    </script>
 
     <script type="module">
-        const status = document.getElementById("status");
-        const rippleLayer = document.getElementById("ripple-layer");
-        const assetVersion = "__ZEROENGINE_ASSET_VERSION__";
+        import * as THREE from "three";
 
-        // --- Boot wasm engine -------------------------------------------------
-        try {
-            const moduleUrl = new URL(`./pkg/zero_engine_client.js?v=${assetVersion}`, import.meta.url);
-            const wasmUrl   = new URL(`./pkg/zero_engine_client_bg.wasm?v=${assetVersion}`, import.meta.url);
-            const { default: init } = await import(moduleUrl.href);
-            await init({ module_or_path: wasmUrl });
-            status.textContent = "Engine running — rendering a WebGPU-driven 3D mesh.";
-        } catch (error) {
-            console.error("Failed to start ZeroEngine", error);
-            status.textContent = "Startup failed — try a WebGPU-capable browser (Chrome/Edge ≥ 113).";
+        const canvas = document.getElementById("scene");
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight, false);
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(3.2, 2.4, 4.2);
+        camera.lookAt(0, 0, 0);
+
+        // Lighting
+        scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+        const key = new THREE.DirectionalLight(0xfff2d0, 1.1);
+        key.position.set(4, 6, 3);
+        scene.add(key);
+        const rim = new THREE.DirectionalLight(0x7cd6ff, 0.6);
+        rim.position.set(-4, -2, -3);
+        scene.add(rim);
+
+        // Reference grid
+        const grid = new THREE.GridHelper(10, 20, 0x1a2a44, 0x15213a);
+        grid.position.y = -1.2;
+        scene.add(grid);
+
+        // The cube — actual 3D, clearly shaded
+        const materials = [
+            new THREE.MeshStandardMaterial({ color: 0xff7f50, roughness: 0.35, metalness: 0.15 }),
+            new THREE.MeshStandardMaterial({ color: 0x4ec5c9, roughness: 0.35, metalness: 0.15 }),
+            new THREE.MeshStandardMaterial({ color: 0xffcf8d, roughness: 0.35, metalness: 0.15 }),
+            new THREE.MeshStandardMaterial({ color: 0x9ae3df, roughness: 0.35, metalness: 0.15 }),
+            new THREE.MeshStandardMaterial({ color: 0xff6b9d, roughness: 0.35, metalness: 0.15 }),
+            new THREE.MeshStandardMaterial({ color: 0xa78bfa, roughness: 0.35, metalness: 0.15 }),
+        ];
+        const cube = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), materials);
+        scene.add(cube);
+
+        // Edge lines on the cube so it reads as 3D even from odd angles
+        const edges = new THREE.LineSegments(
+            new THREE.EdgesGeometry(cube.geometry),
+            new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28 })
+        );
+        cube.add(edges);
+
+        // --- Interaction -----------------------------------------------------
+        // Simple drag-to-rotate (no pointer lock — won't capture or hide cursor).
+        const state = {
+            autoSpin: true,
+            rotX: 0.4,
+            rotY: 0.6,
+            velX: 0.004,
+            velY: 0.007,
+            dragging: false,
+            lastX: 0,
+            lastY: 0,
+            pulse: 0,
+        };
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        canvas.addEventListener("pointerdown", (e) => {
+            state.dragging = true;
+            state.lastX = e.clientX;
+            state.lastY = e.clientY;
+
+            // Hit-test the cube for a click burst.
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const hits = raycaster.intersectObject(cube);
+            if (hits.length > 0) onCubeClick();
+        });
+        window.addEventListener("pointerup", () => { state.dragging = false; });
+        window.addEventListener("pointermove", (e) => {
+            if (!state.dragging) return;
+            const dx = e.clientX - state.lastX;
+            const dy = e.clientY - state.lastY;
+            state.rotY += dx * 0.01;
+            state.rotX += dy * 0.01;
+            state.lastX = e.clientX;
+            state.lastY = e.clientY;
+            state.autoSpin = false;  // user is in control
+            state.velX = 0; state.velY = 0;
+        });
+
+        canvas.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            const z = camera.position.length();
+            const next = Math.max(2.5, Math.min(12, z + Math.sign(e.deltaY) * 0.4));
+            camera.position.setLength(next);
+            camera.lookAt(0, 0, 0);
+        }, { passive: false });
+
+        function onCubeClick() {
+            // Shuffle colors on click + pulse scale.
+            const palette = [0xff7f50, 0x4ec5c9, 0xffcf8d, 0x9ae3df, 0xff6b9d, 0xa78bfa, 0xffd166, 0x06d6a0];
+            for (const mat of materials) {
+                mat.color.setHex(palette[Math.floor(Math.random() * palette.length)]);
+            }
+            state.pulse = 1.0;
         }
 
-        // --- Click ripple: proof the page is interactive ---------------------
-        function spawnRipple(x, y) {
-            const el = document.createElement("div");
-            el.className = "ripple";
-            el.style.left = x + "px";
-            el.style.top  = y + "px";
-            const size = 28 + Math.random() * 22;
-            el.style.width  = size + "px";
-            el.style.height = size + "px";
-            rippleLayer.appendChild(el);
-            setTimeout(() => el.remove(), 750);
+        // --- Resize ----------------------------------------------------------
+        window.addEventListener("resize", () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight, false);
+        });
+
+        // --- Loop ------------------------------------------------------------
+        function frame() {
+            if (state.autoSpin) {
+                state.rotY += state.velY;
+                state.rotX += state.velX;
+            }
+            cube.rotation.x = state.rotX;
+            cube.rotation.y = state.rotY;
+
+            // Pulse scale after click
+            const target = 1 + state.pulse * 0.18;
+            cube.scale.setScalar(THREE.MathUtils.lerp(cube.scale.x, target, 0.25));
+            state.pulse *= 0.88;
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(frame);
         }
-        window.addEventListener("pointerdown", (e) => {
-            // Ignore clicks on HUD elements so buttons still work.
-            if (e.target.closest(".hud") || e.target.closest(".sample")) return;
-            spawnRipple(e.clientX, e.clientY);
-        }, { passive: true });
+        frame();
     </script>
 </body>
 </html>
