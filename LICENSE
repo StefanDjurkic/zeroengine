@@ -1,56 +1,21 @@
-ZeroEngine License (Permissive, with Visible Attribution)
+MIT License
+
 Copyright (c) 2026 Stefan Djurkic
 
-Permission is hereby granted, free of charge, to any person or organization
-obtaining a copy of this software and associated documentation files (the
-"Software"), to use, copy, modify, merge, publish, distribute, sublicense,
-and/or sell copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-1. COPYRIGHT NOTICE
-   The above copyright notice and this permission notice shall be included
-   in all copies or substantial portions of the Software.
-
-2. VISIBLE ATTRIBUTION (REQUIRED)
-   Any redistribution of the Software, in source or binary form, and any
-   product, service, application, library, game, or derivative work that
-   uses, embeds, bundles, or is built on top of the Software, MUST include
-   a clearly visible credit to the original author in its user-facing
-   documentation. "User-facing documentation" means at minimum:
-
-     (a) the README (or equivalent top-level description) of any public
-         source repository that contains the Software or a derivative
-         work of the Software, AND
-
-     (b) an "About", "Credits", "Acknowledgements", "Licenses", or
-         equivalent page, dialog, or screen of any application, website,
-         game, or product that ships the Software or a derivative work
-         of it.
-
-   The credit must include the author name ("Stefan Djurkic") and a link
-   to the original project repository
-   (https://github.com/StefanDjurkic/zeroengine). It must be readable by
-   a normal end user without inspecting the source code, minified
-   bundles, binary resources, or other artifacts that are not normally
-   viewed.
-
-   Credit buried only in source comments, license headers, package
-   manifests, NOTICE files that are not surfaced to end users, or
-   minified/compiled artifacts does NOT satisfy this requirement.
-
-   Example of an acceptable credit line:
-
-       "Powered by ZeroEngine by Stefan Djurkic —
-        https://github.com/StefanDjurkic/zeroengine"
-
-3. NO ENDORSEMENT
-   The name of the author may not be used to endorse or promote products
-   derived from this Software without specific prior written permission.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

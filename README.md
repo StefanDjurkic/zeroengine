@@ -111,15 +111,4 @@ ZeroEngine is a fun side project and contributions are very welcome — issues, 
 
 ## License
 
-ZeroEngine is released under a **permissive license with a visible-attribution requirement** (see [LICENSE](LICENSE)).
-
-You can use, fork, modify, bundle, and ship ZeroEngine in open-source or commercial projects **for free**. In exchange, anything that uses or builds on ZeroEngine must give clearly visible credit to the author in user-facing documentation:
-
-- In the **README** of any public repo that contains ZeroEngine or a derivative work, **and**
-- In a **Credits / About / Acknowledgements** screen of any app, game, or website that ships ZeroEngine or a derivative work.
-
-Example credit line:
-
-> Powered by ZeroEngine by Stefan Djurkic — https://github.com/StefanDjurkic/zeroengine
-
-Credit buried only inside source code, license headers, package manifests, or minified bundles does **not** satisfy this requirement — it has to be visible to a normal end user.
+MIT — see [LICENSE](LICENSE).
