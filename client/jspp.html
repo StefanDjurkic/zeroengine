@@ -1,78 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>JSPP Playground</title>
 <style>
-    :root {
-        --bg-0:#0b0f17; --bg-1:#121826; --panel:#1a2233; --stroke:#2a3347;
-        --text:#e5e7eb; --muted:#9ca3af; --accent:#22d3ee; --accent-2:#a78bfa;
-        --ok:#34d399; --err:#ef4444;
-    }
-    * { box-sizing: border-box; }
-    html, body { margin:0; padding:0; height:100%; background:var(--bg-0);
-        color:var(--text); font-family: system-ui,-apple-system,Segoe UI,Roboto,sans-serif; overflow:hidden; }
-    body { display:grid; grid-template-columns: minmax(0,1fr) minmax(360px, 40vw); height:100vh; }
-    .view { position:relative; background:#050913; overflow:hidden;
-        display:flex; align-items:center; justify-content:center; padding:16px; }
-    #canvas { background:#0e131f; border:1px solid var(--stroke); border-radius:8px;
-        box-shadow: 0 10px 40px rgba(0,0,0,.5); max-width:100%; max-height:100%; }
-    #view-badge { position:absolute; top:12px; left:12px; font-size:11px;
-        color:var(--muted); background:rgba(17,22,35,.8); padding:6px 10px; border-radius:999px;
-        border:1px solid var(--stroke); letter-spacing:.05em; }
-    #view-badge .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
-        background:var(--ok); box-shadow:0 0 6px var(--ok); margin-right:6px; vertical-align:middle; }
-    #back { position:absolute; top:12px; right:12px; font-size:12px; color:var(--text);
-        text-decoration:none; background:var(--panel); border:1px solid var(--stroke);
-        padding:6px 12px; border-radius:8px; }
-    #back:hover { border-color: var(--accent); }
+:root {
+    --bg-0:#0b0f17; --bg-1:#121826; --panel:#1a2233; --stroke:#2a3347;
+    --text:#e5e7eb; --muted:#9ca3af; --accent:#22d3ee; --accent-2:#a78bfa;
+    --ok:#34d399; --err:#ef4444;
+}
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; height:100%; background:var(--bg-0);
+    color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; overflow:hidden; }
+body { display:grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 40vw); height:100vh; }
+.view { position:relative; background:#050913; overflow:hidden;
+    display:flex; align-items:center; justify-content:center; padding:16px; }
+canvas { background:#0e131f; border:1px solid var(--stroke); border-radius:8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5); max-width:100%; max-height:100%; }
+#canvas2d, #canvas3d { width: 640px; height: 520px; }
+#canvas3d { display:none; }
+#view-badge { position:absolute; top:12px; left:12px; font-size:11px;
+    color:var(--muted); background:rgba(17,22,35,.8); padding:6px 10px; border-radius:999px;
+    border:1px solid var(--stroke); letter-spacing:.05em; }
+#view-badge .dot { display:inline-block; width:8px; height:8px; border-radius:50%;
+    background:var(--ok); box-shadow:0 0 6px var(--ok); margin-right:6px; vertical-align:middle; }
+#back { position:absolute; top:12px; right:12px; font-size:12px; color:var(--text);
+    text-decoration:none; background:var(--panel); border:1px solid var(--stroke);
+    padding:6px 12px; border-radius:8px; }
+#back:hover { border-color: var(--accent); }
 
-    .side { display:flex; flex-direction:column; border-left:1px solid var(--stroke);
-        background:var(--bg-1); min-width:0; }
-    .head { display:flex; align-items:center; justify-content:space-between; gap:10px;
-        padding:12px 16px; border-bottom:1px solid var(--stroke); background:rgba(0,0,0,.2); }
-    .head .title { font-size:13px; font-weight:700; color:#fff; }
-    .head .sub { font-size:11px; color:var(--muted); }
-    .brand .j { background:linear-gradient(90deg,var(--accent),var(--accent-2));
-        -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:700; }
+.side { display:flex; flex-direction:column; border-left:1px solid var(--stroke);
+    background:var(--bg-1); min-width:0; }
+.head { display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 16px; border-bottom:1px solid var(--stroke); background:rgba(0,0,0,.2); }
+.head .title { font-size:13px; font-weight:700; color:#fff; }
+.head .sub { font-size:11px; color:var(--muted); margin-top:2px; }
+.brand .j { background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:700; }
 
-    .editor-wrap { flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
-    textarea#editor { flex:1 1 auto; min-height:140px;
-        font-family:'Fira Code',Consolas,Monaco,monospace; font-size:13px; line-height:1.55;
-        color:#d6deeb; background:#0d1220; border:none; outline:none; padding:14px 16px;
-        resize:none; tab-size:4; }
+.scene-bar { display:flex; flex-wrap:wrap; gap:6px; padding:10px 14px;
+    border-bottom:1px solid var(--stroke); background:rgba(0,0,0,.15); }
+.scene-bar .pill { font-size:11px; padding:5px 10px; border-radius:999px;
+    border:1px solid var(--stroke); background:transparent; color:var(--muted);
+    cursor:pointer; font-family:inherit; }
+.scene-bar .pill:hover { color:var(--text); border-color:var(--accent); }
+.scene-bar .pill.active { background: rgba(34,211,238,0.15); color:var(--text); border-color: var(--accent); }
 
-    .toolbar { display:flex; gap:8px; align-items:center; padding:10px 12px;
-        border-top:1px solid var(--stroke); background:rgba(0,0,0,.25); flex:0 0 auto; }
-    .btn { border:1px solid var(--stroke); background:var(--panel); color:var(--text);
-        padding:7px 14px; border-radius:8px; cursor:pointer; font-size:12px;
-        font-family:inherit; display:inline-flex; align-items:center; gap:6px; }
-    .btn:hover { border-color: var(--accent); }
-    .btn.primary { background:linear-gradient(135deg,var(--accent),var(--accent-2));
-        border:none; color:#0b0f17; font-weight:700; }
-    .toolbar select { background:var(--panel); color:var(--text); border:1px solid var(--stroke);
-        border-radius:8px; padding:6px 10px; font-size:12px; font-family:inherit; }
-    .toolbar .spacer { flex:1 1 auto; }
-    .toolbar .hint { font-size:11px; color:var(--muted); }
+.editor-wrap { flex:1 1 auto; display:flex; flex-direction:column; min-height:0; }
+textarea#editor { flex:1 1 auto; min-height:160px;
+    font-family: 'Fira Code', Consolas, Monaco, monospace; font-size:13px; line-height:1.55;
+    color:#d6deeb; background:#0d1220; border:none; outline:none; padding:14px 16px;
+    resize:none; tab-size:4; }
 
-    .output { flex:0 0 auto; max-height:30vh; overflow:auto;
-        border-top:1px solid var(--stroke); background:#080c16; }
-    .output .label { font-size:10px; letter-spacing:.12em; text-transform:uppercase;
-        color:var(--muted); padding:8px 16px 4px; }
-    .output pre { margin:0; padding:0 16px 12px;
-        font-family:'Fira Code',Consolas,Monaco,monospace; font-size:12px; line-height:1.55;
-        color:#d6deeb; white-space:pre-wrap; word-break:break-word; }
-    .output .err { color:#fecaca; }
-    .output .info { color:var(--muted); }
+.toolbar { display:flex; gap:8px; align-items:center; padding:10px 12px;
+    border-top:1px solid var(--stroke); background:rgba(0,0,0,.25); flex:0 0 auto; }
+.btn { border:1px solid var(--stroke); background:var(--panel); color:var(--text);
+    padding:7px 14px; border-radius:8px; cursor:pointer; font-size:12px;
+    font-family:inherit; display:inline-flex; align-items:center; gap:6px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    border:none; color:#0b0f17; font-weight:700; }
+.toolbar .spacer { flex:1 1 auto; }
+.toolbar .hint { font-size:11px; color:var(--muted); }
+
+.output { flex:0 0 auto; max-height:32vh; overflow:auto;
+    border-top:1px solid var(--stroke); background:#080c16; }
+.output .label { font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); padding:8px 16px 4px; }
+.output pre { margin:0; padding:0 16px 12px;
+    font-family: 'Fira Code', Consolas, Monaco, monospace; font-size:12px; line-height:1.55;
+    color:#d6deeb; white-space:pre-wrap; word-break:break-word; }
+.output .err { color:#fecaca; }
+.output .info { color:var(--muted); }
 </style>
 </head>
 <body>
 
 <div class="view">
-    <span id="view-badge"><span class="dot"></span>JSPP â†’ Canvas2D</span>
-    <a id="back" href="./">â† back</a>
-    <canvas id="canvas" width="560" height="480"></canvas>
+    <span id="view-badge"><span class="dot"></span><span id="mode-label">JSPP to Canvas2D</span></span>
+    <a id="back" href="./">back</a>
+    <canvas id="canvas2d" width="640" height="520"></canvas>
+    <canvas id="canvas3d" width="640" height="520"></canvas>
 </div>
 
 <div class="side">
@@ -83,18 +92,20 @@
         </div>
     </div>
 
+    <div class="scene-bar">
+        <button class="pill active" data-scene="hello">hello</button>
+        <button class="pill" data-scene="loops">loops</button>
+        <button class="pill" data-scene="functions">functions</button>
+        <button class="pill" data-scene="classes">classes</button>
+        <button class="pill" data-scene="bouncing">bouncing</button>
+        <button class="pill" data-scene="cube3d">3D cube</button>
+    </div>
+
     <div class="editor-wrap">
-        <textarea id="editor" spellcheck="false" autocomplete="off"></textarea>
+        <textarea id="editor" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
         <div class="toolbar">
-            <button id="btn-run" class="btn primary" title="Ctrl+Enter">â–¶ Run</button>
-            <select id="example">
-                <option value="">Load exampleâ€¦</option>
-                <option value="hello">hello â€” shapes + print</option>
-                <option value="loops">loops â€” grid of circles</option>
-                <option value="functions">functions â€” recursion</option>
-                <option value="classes">classes â€” OOP</option>
-                <option value="bouncing">bouncing â€” animation</option>
-            </select>
+            <button id="btn-run" class="btn primary" title="Ctrl+Enter">Run</button>
+            <button id="btn-reset" class="btn">Reset</button>
             <span class="spacer"></span>
             <span class="hint">Ctrl+Enter to run</span>
         </div>
@@ -108,62 +119,57 @@
 <script type="importmap">
 {
     "imports": {
-        "fs":   "./node-shims.mjs",
-        "path": "./node-shims.mjs",
-        "url":  "./node-shims.mjs"
+        "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+        "fs":    "./node-shims.mjs",
+        "path":  "./node-shims.mjs",
+        "url":   "./node-shims.mjs"
     }
 }
 </script>
 
 <script type="module">
-const canvas   = document.getElementById("canvas");
-const ctx      = canvas.getContext("2d");
-const editor   = document.getElementById("editor");
-const btnRun   = document.getElementById("btn-run");
-const outEl    = document.getElementById("out");
-const exampleEl = document.getElementById("example");
+import * as THREE from "three";
 
 const EXAMPLES = {
-    hello:
-`// hello.jspp â€” draw shapes and print to the output console.
+hello:
+`// hello.jspp - draw shapes and print to the output console.
 // Builtins: clear(r,g,b), drawRect(x,y,w,h,r,g,b),
 //           drawCircle(x,y,radius,r,g,b), drawLine(x1,y1,x2,y2,r,g,b),
 //           print(...)
 
 clear(16, 22, 36);
 
-drawRect(40, 40, 200, 120, 255, 107, 107);
-drawCircle(360, 110, 60, 78, 205, 196);
-drawLine(20, 200, 540, 220, 255, 230, 109);
+drawRect(40, 40, 220, 140, 255, 107, 107);
+drawCircle(420, 130, 70, 78, 205, 196);
+drawLine(20, 230, 620, 240, 255, 230, 109);
 
 print("Hello from JSPP!");
-print("Any shape you see was drawn by your JSPP code.");
+print("Every shape above was drawn by your JSPP code.");
 `,
-    loops:
-`// loops.jspp â€” nested loops draw a grid of circles.
+
+loops:
+`// loops.jspp - nested loops draw a grid of circles.
 
 clear(12, 16, 28);
 
-let cols = 12;
-let rows = 9;
-let cell = 40;
+let cols = 14;
+let rows = 10;
+let cell = 42;
 
 for (let y = 0; y < rows; y = y + 1) {
     for (let x = 0; x < cols; x = x + 1) {
         let cx = 40 + x * cell;
         let cy = 40 + y * cell;
         let r  = 10 + ((x + y) % 4) * 3;
-        let red   = 60 + x * 16;
-        let green = 200 - y * 18;
-        let blue  = 120 + ((x + y) % 5) * 20;
-        drawCircle(cx, cy, r, red, green, blue);
+        drawCircle(cx, cy, r, 60 + x * 14, 200 - y * 18, 120 + ((x + y) % 5) * 20);
     }
 }
 
 print("drew", cols * rows, "circles via a nested for-loop");
 `,
-    functions:
-`// functions.jspp â€” recursion + a helper function.
+
+functions:
+`// functions.jspp - recursion + helper function.
 
 clear(18, 24, 38);
 
@@ -173,20 +179,21 @@ function fib(n) {
 }
 
 function bar(i, value) {
-    let x = 30 + i * 28;
-    let h = value * 4;
-    let y = 440 - h;
-    drawRect(x, y, 22, h, 120 + i * 10, 200, 255 - i * 12);
+    let x = 30 + i * 32;
+    let h = value * 3;
+    let y = 460 - h;
+    drawRect(x, y, 26, h, 120 + i * 10, 200, 255 - i * 12);
 }
 
-for (let i = 0; i < 12; i = i + 1) {
+for (let i = 0; i < 14; i = i + 1) {
     let f = fib(i);
     bar(i, f);
     print("fib(", i, ") =", f);
 }
 `,
-    classes:
-`// classes.jspp â€” classes + methods drive the rendering.
+
+classes:
+`// classes.jspp - classes with methods drive the drawing.
 
 clear(10, 14, 24);
 
@@ -209,10 +216,10 @@ class Ball {
 }
 
 let balls = [
-    new Ball(100, 240, 60, 255, 107, 107),
-    new Ball(220, 240, 60,  78, 205, 196),
-    new Ball(340, 240, 60, 255, 230, 109),
-    new Ball(460, 240, 60, 162, 140, 255)
+    new Ball(110, 260, 70, 255, 107, 107),
+    new Ball(260, 260, 70,  78, 205, 196),
+    new Ball(410, 260, 70, 255, 230, 109),
+    new Ball(560, 260, 70, 162, 140, 255)
 ];
 
 for (let i = 0; i < 4; i = i + 1) {
@@ -221,46 +228,87 @@ for (let i = 0; i < 4; i = i + 1) {
 
 print("drew", 4, "Ball instances");
 `,
-    bouncing:
-`// bouncing.jspp â€” define a tick(t) function to animate the canvas.
-// When the playground sees a function named tick, it calls tick(t)
-// every frame with t = seconds since Run. Redraw with clear() inside.
+
+bouncing:
+`// bouncing.jspp - define tick(t) and the playground animates the canvas.
 
 function tick(t) {
     clear(10, 14, 24);
-    let cx = 280 + Math.sin(t * 2.0) * 220;
-    let cy = 240 + Math.cos(t * 1.7) * 160;
-    drawCircle(cx, cy, 40, 120, 220, 255);
+    let cx = 320 + Math.sin(t * 2.0) * 260;
+    let cy = 260 + Math.cos(t * 1.7) * 180;
+    drawCircle(cx, cy, 42, 120, 220, 255);
 
-    for (let i = 0; i < 8; i = i + 1) {
-        let a = t * 0.6 + i * 0.8;
-        let x = 280 + Math.cos(a) * 180;
-        let y = 240 + Math.sin(a) * 180;
-        drawCircle(x, y, 12, 255 - i * 20, 130 + i * 10, 200);
+    for (let i = 0; i < 10; i = i + 1) {
+        let a = t * 0.6 + i * 0.7;
+        let x = 320 + Math.cos(a) * 220;
+        let y = 260 + Math.sin(a) * 200;
+        drawCircle(x, y, 14, 255 - i * 18, 130 + i * 10, 200);
     }
 }
+`,
+
+cube3d:
+`// cube3d.jspp - 3D mode. JSPP drives a real Three.js cube.
+// Builtins in 3D mode:
+//   setRotation(x, y)         - radians
+//   setScale(s)               - uniform scale
+//   setFaceColor(i, r, g, b)  - face index 0..5, bytes
+//   print(...)
+
+let t = 0.0;
+
+let palette = [
+    [255, 107, 107],
+    [ 78, 205, 196],
+    [255, 230, 109],
+    [ 84, 160, 255],
+    [255, 138, 221],
+    [162, 140, 255]
+];
+
+for (let i = 0; i < 6; i = i + 1) {
+    let c = palette[i];
+    setFaceColor(i, c[0], c[1], c[2]);
+}
+
+function tick(dt) {
+    t = t + dt;
+    setRotation(t * 0.6, t * 0.9);
+    setScale(1.0 + Math.sin(t * 2.0) * 0.08);
+}
+
+print("3D cube armed - JSPP is driving the Three.js scene");
 `
 };
 
-editor.value = EXAMPLES.hello;
+// ---------- DOM refs ----------
+const canvas2d = document.getElementById("canvas2d");
+const canvas3d = document.getElementById("canvas3d");
+const ctx = canvas2d.getContext("2d");
+const editor = document.getElementById("editor");
+const outEl  = document.getElementById("out");
+const btnRun = document.getElementById("btn-run");
+const btnReset = document.getElementById("btn-reset");
+const modeLabel = document.getElementById("mode-label");
+const pills = [...document.querySelectorAll(".pill")];
 
-// ---- Draw builtins: plain Canvas2D, no wasm, no hidden scene ----
-function clear(r, g, b) {
-    ctx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+// ---------- 2D builtins ----------
+function clear2d(r, g, b) {
+    ctx.fillStyle = "rgb(" + (r|0) + "," + (g|0) + "," + (b|0) + ")";
+    ctx.fillRect(0, 0, canvas2d.width, canvas2d.height);
 }
 function drawRect(x, y, w, h, r, g, b) {
-    ctx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
+    ctx.fillStyle = "rgb(" + (r|0) + "," + (g|0) + "," + (b|0) + ")";
     ctx.fillRect(x, y, w, h);
 }
 function drawCircle(x, y, radius, r, g, b) {
-    ctx.fillStyle = `rgb(${r|0},${g|0},${b|0})`;
+    ctx.fillStyle = "rgb(" + (r|0) + "," + (g|0) + "," + (b|0) + ")";
     ctx.beginPath();
     ctx.arc(x, y, Math.max(0, radius), 0, Math.PI * 2);
     ctx.fill();
 }
 function drawLine(x1, y1, x2, y2, r, g, b) {
-    ctx.strokeStyle = `rgb(${r|0},${g|0},${b|0})`;
+    ctx.strokeStyle = "rgb(" + (r|0) + "," + (g|0) + "," + (b|0) + ")";
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
@@ -268,6 +316,49 @@ function drawLine(x1, y1, x2, y2, r, g, b) {
     ctx.stroke();
 }
 
+// ---------- 3D scene (lazy-init once, reused) ----------
+let renderer3d = null, scene3d = null, camera3d = null, cube3d = null, faceMats = null;
+
+function init3d() {
+    if (renderer3d) return;
+    renderer3d = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: true, alpha: true });
+    renderer3d.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer3d.setSize(canvas3d.width, canvas3d.height, false);
+    renderer3d.setClearColor(0x0e131f, 1);
+
+    scene3d = new THREE.Scene();
+    camera3d = new THREE.PerspectiveCamera(45, canvas3d.width / canvas3d.height, 0.1, 100);
+    camera3d.position.set(3.2, 2.4, 4.2);
+    camera3d.lookAt(0, 0, 0);
+
+    scene3d.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const key = new THREE.DirectionalLight(0xffe0b5, 1.1); key.position.set(5, 6, 4); scene3d.add(key);
+    const rim = new THREE.DirectionalLight(0x88aaff, 0.6); rim.position.set(-4, -2, -3); scene3d.add(rim);
+
+    const grid = new THREE.GridHelper(10, 20, 0x2a3347, 0x1a2233);
+    grid.position.y = -1.2; scene3d.add(grid);
+
+    faceMats = [];
+    for (let i = 0; i < 6; i++) {
+        faceMats.push(new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.6, metalness: 0.15 }));
+    }
+    cube3d = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), faceMats);
+    scene3d.add(cube3d);
+    cube3d.add(new THREE.LineSegments(
+        new THREE.EdgesGeometry(cube3d.geometry),
+        new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28 })
+    ));
+}
+
+function setRotation(x, y) { if (cube3d) { cube3d.rotation.x = Number(x) || 0; cube3d.rotation.y = Number(y) || 0; } }
+function setScale(s)       { if (cube3d) { cube3d.scale.setScalar(Number(s) || 1); } }
+function setFaceColor(idx, r, g, b) {
+    if (!faceMats) return;
+    const m = faceMats[(idx | 0) % 6];
+    if (m) m.color.setRGB((Number(r) || 0) / 255, (Number(g) || 0) / 255, (Number(b) || 0) / 255);
+}
+
+// ---------- Output helper ----------
 function appendOut(text, cls) {
     const span = document.createElement("span");
     if (cls) span.className = cls;
@@ -276,7 +367,7 @@ function appendOut(text, cls) {
     outEl.parentElement.scrollTop = outEl.parentElement.scrollHeight;
 }
 
-// ---- Load JSPP interpreter ----
+// ---------- JSPP interpreter ----------
 let jspp = null;
 try {
     jspp = await import("./prototype/jspp.mjs");
@@ -286,13 +377,26 @@ try {
     appendOut("Failed to load JSPP interpreter: " + err.message, "err");
 }
 
+// ---------- Run / mode switching ----------
+let currentMode = "2d";
+let currentScene = "hello";
 let animHandle = null;
-let animStart  = 0;
 
 function stopAnim() {
-    if (animHandle !== null) {
-        cancelAnimationFrame(animHandle);
-        animHandle = null;
+    if (animHandle !== null) { cancelAnimationFrame(animHandle); animHandle = null; }
+}
+
+function setMode(mode) {
+    currentMode = mode;
+    if (mode === "3d") {
+        init3d();
+        canvas2d.style.display = "none";
+        canvas3d.style.display = "block";
+        modeLabel.textContent = "JSPP to Three.js (3D)";
+    } else {
+        canvas2d.style.display = "block";
+        canvas3d.style.display = "none";
+        modeLabel.textContent = "JSPP to Canvas2D";
     }
 }
 
@@ -300,63 +404,89 @@ function run() {
     if (!jspp) return;
     stopAnim();
     outEl.innerHTML = "";
-    // blank the canvas up front so visitors see their clear() effect
-    clear(14, 18, 28);
 
     const source = editor.value;
-    const interp = new jspp.Interpreter({
-        onOutput: (line) => appendOut(line)
-    });
+    const interp = new jspp.Interpreter({ onOutput: (line) => appendOut(line) });
     const g = interp.global;
-    g.define("clear",      clear);
-    g.define("drawRect",   drawRect);
-    g.define("drawCircle", drawCircle);
-    g.define("drawLine",   drawLine);
-    g.define("print",      (...args) => appendOut(args.map(a =>
+
+    if (currentMode === "3d") {
+        g.define("setRotation",  setRotation);
+        g.define("setScale",     setScale);
+        g.define("setFaceColor", setFaceColor);
+    } else {
+        clear2d(14, 18, 28);
+        g.define("clear",      clear2d);
+        g.define("drawRect",   drawRect);
+        g.define("drawCircle", drawCircle);
+        g.define("drawLine",   drawLine);
+    }
+    g.define("print", (...args) => appendOut(args.map(a =>
         typeof a === "string" ? a : JSON.stringify(a)).join(" ")));
 
-    // Parse
-    let ast;
+    let parsed;
     try {
-        ast = jspp.parseSource(source, "playground.jspp");
+        parsed = jspp.parseSource(source, "playground.jspp");
     } catch (err) {
         appendOut("Parse error: " + (err.message || err), "err");
         return;
     }
 
-    // Execute. We wrap in a function so `return tick;` at the top level works
-    // to give us an animation callback.
-    let tickFn = null;
     try {
-        // Run top-level. Any top-level `return X` is stored via a special mechanism:
-        // the interpreter's run() walks body statements. If user wrote a function
-        // named `tick`, we'll pick it up after.
-        interp.run(ast);
-        tickFn = g.vars.get("tick");
+        interp.run(parsed.ast);
     } catch (err) {
         appendOut("Runtime error: " + (err.message || err), "err");
         return;
     }
 
-    if (typeof tickFn === "function") {
-        appendOut("tick() detected â€” animating.", "info");
-        animStart = performance.now();
+    const tickFn = g.vars.get("tick");
+
+    if (currentMode === "3d") {
+        let last = performance.now();
         const loop = (now) => {
-            const t = (now - animStart) / 1000;
-            try { tickFn(t); }
-            catch (err) {
-                appendOut("tick() error: " + (err.message || err), "err");
-                stopAnim(); return;
+            const dt = Math.min(0.05, (now - last) / 1000);
+            last = now;
+            if (typeof tickFn === "function") {
+                try { tickFn(dt); }
+                catch (err) { appendOut("tick error: " + (err.message || err), "err"); stopAnim(); return; }
             }
+            renderer3d.render(scene3d, camera3d);
             animHandle = requestAnimationFrame(loop);
         };
+        if (typeof tickFn === "function") {
+            appendOut("animating via tick(dt).", "info");
+        } else {
+            appendOut("done. (define tick(dt) to animate the cube)", "info");
+        }
         animHandle = requestAnimationFrame(loop);
     } else {
-        appendOut("done.", "info");
+        if (typeof tickFn === "function") {
+            appendOut("animating via tick(t).", "info");
+            const start = performance.now();
+            const loop = (now) => {
+                const t = (now - start) / 1000;
+                try { tickFn(t); }
+                catch (err) { appendOut("tick error: " + (err.message || err), "err"); stopAnim(); return; }
+                animHandle = requestAnimationFrame(loop);
+            };
+            animHandle = requestAnimationFrame(loop);
+        } else {
+            appendOut("done.", "info");
+        }
     }
 }
 
+function loadScene(key) {
+    stopAnim();
+    currentScene = key;
+    pills.forEach(p => p.classList.toggle("active", p.dataset.scene === key));
+    editor.value = EXAMPLES[key] || "";
+    setMode(key === "cube3d" ? "3d" : "2d");
+    run();
+}
+
+pills.forEach(p => p.addEventListener("click", () => loadScene(p.dataset.scene)));
 btnRun.addEventListener("click", run);
+btnReset.addEventListener("click", () => loadScene(currentScene));
 editor.addEventListener("keydown", (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); run(); }
     if (e.key === "Tab") {
@@ -366,16 +496,8 @@ editor.addEventListener("keydown", (e) => {
         editor.selectionStart = editor.selectionEnd = s + 4;
     }
 });
-exampleEl.addEventListener("change", () => {
-    const key = exampleEl.value;
-    if (!key) return;
-    editor.value = EXAMPLES[key] || "";
-    exampleEl.value = "";
-    run();
-});
 
-// Auto-run the default example on load so something is visible immediately.
-if (jspp) run();
+loadScene("hello");
 </script>
 
 </body>

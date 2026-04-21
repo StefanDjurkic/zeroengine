@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ZeroEngine × JSPP — live 3D demo</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeroEngine x JSPP</title>
 <style>
     :root {
         --bg-0:#0b0f17; --bg-1:#121826; --panel:#1a2233; --stroke:#2a3347;
         --text:#e5e7eb; --muted:#9ca3af; --accent:#22d3ee; --accent-2:#a78bfa;
-        --ok:#34d399; --warn:#f59e0b; --err:#ef4444;
+        --ok:#34d399;
     }
     * { box-sizing: border-box; }
     html, body { margin:0; padding:0; height:100%; background:var(--bg-0);
-        color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; overflow:hidden; }
+        color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; overflow:hidden; }
     #stage { position:fixed; inset:0; }
     canvas { display:block; width:100%; height:100%; }
 
@@ -37,29 +37,11 @@
     .btns { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     .btn { text-decoration:none; color:var(--text); border:1px solid var(--stroke);
         background:var(--panel); padding:8px 12px; border-radius:10px; font-size:13px;
-        display:inline-flex; align-items:center; gap:6px; transition:all .15s; }
+        display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+        font-family:inherit; transition:all .15s; }
     .btn:hover { transform:translateY(-1px); border-color:var(--accent); }
-    .btn.primary { background:linear-gradient(135deg,var(--accent),var(--accent-2)); border:none; color:#0b0f17; font-weight:700; }
-
-    #jspp-panel { position:fixed; top:20px; right:20px; width:min(520px, 42vw); z-index:5;
-        display:flex; flex-direction:column; max-height:calc(100vh - 40px); }
-    #jspp-panel .card { padding:0; overflow:hidden; display:flex; flex-direction:column; flex:1 1 auto; min-height:0; }
-    .panel-head { display:flex; justify-content:space-between; align-items:center;
-        padding:10px 14px; border-bottom:1px solid var(--stroke); background:rgba(0,0,0,.25); flex:0 0 auto; }
-    .panel-head .title { font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
-    .panel-head .badge { font-size:11px; color:var(--ok); display:flex; align-items:center; gap:6px; }
-    .panel-head .badge .d { width:8px; height:8px; border-radius:50%; background:var(--ok); box-shadow:0 0 6px var(--ok); }
-    .panel-head .badge.err { color: var(--err); }
-    .panel-head .badge.err .d { background: var(--err); box-shadow: 0 0 6px var(--err); }
-    textarea.code-input { flex:1 1 auto; min-height:220px; resize:none; margin:0; padding:14px 16px;
-        font-family:'Fira Code',Consolas,Monaco,monospace; font-size:12px; line-height:1.55;
-        color:#d6deeb; background:transparent; border:none; outline:none; tab-size:4; }
-    .panel-foot { display:flex; gap:8px; padding:10px 12px; border-top:1px solid var(--stroke);
-        background:rgba(0,0,0,.25); flex:0 0 auto; }
-    .panel-foot .hint-text { font-size:11px; color:var(--muted); align-self:center; margin-left:auto; }
-    #run-err { margin:0; padding:8px 16px; background:rgba(239,68,68,.12); color:#fecaca;
-        font-family:'Fira Code',Consolas,Monaco,monospace; font-size:11px; border-top:1px solid rgba(239,68,68,.35);
-        max-height:120px; overflow:auto; white-space:pre-wrap; display:none; flex:0 0 auto; }
+    .btn.primary { background:linear-gradient(135deg,var(--accent),var(--accent-2));
+        border:none; color:#0b0f17; font-weight:700; }
 
     #hint { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
         z-index:5; padding:10px 16px; font-size:13px; color:var(--muted);
@@ -70,23 +52,15 @@
         color:var(--muted); background:rgba(17,22,35,.75); border:1px solid var(--stroke);
         padding:8px 12px; border-radius:999px; backdrop-filter: blur(8px); pointer-events:auto; }
     #credit a { color:var(--accent); text-decoration:none; }
-    #credit a:hover { text-decoration:underline; }
 
     #boot { position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
         z-index:10; background:var(--bg-0); color:var(--muted); font-size:14px; transition:opacity .4s; }
     #boot.hidden { opacity:0; pointer-events:none; }
-
-    @media (max-width: 880px) {
-        #jspp-panel { position:static; width:auto; margin:10px; }
-        #top-left { position:static; margin:10px; }
-        #hint { display:none; }
-        html, body { overflow:auto; }
-    }
 </style>
 </head>
 <body>
 
-<div id="boot">booting JSPP interpreter + Three.js…</div>
+<div id="boot">booting JSPP interpreter + Three.js...</div>
 
 <div id="stage"><canvas id="c"></canvas></div>
 
@@ -94,36 +68,20 @@
     <div class="card">
         <div class="brand">
             <span class="dot"></span>
-            <h1><span class="j">JSPP</span> <span class="x">×</span> ZeroEngine</h1>
+            <h1><span class="j">JSPP</span> <span class="x">x</span> ZeroEngine</h1>
         </div>
-        <p class="tag">live 3D demo · JSPP code drives the cube below · running in your browser</p>
-        <p class="line">This cube's rotation, colors, and click behavior are computed by the <b>JSPP interpreter</b> every frame. The source on the right is the actual code running — edit mentally, then hit "Open Playground" to really edit it.</p>
-        <p class="line"><b>JSPP</b> is a TypeScript-flavored language that compiles to modern C++20. <b>ZeroEngine</b> is a Rust game engine that ships to WebAssembly. Together they let you write clean high-level code for real 3D.</p>
+        <p class="tag">live 3D demo - JSPP code drives this cube in real time</p>
+        <p class="line">The cube's rotation, color, and click behavior are all computed by the <b>JSPP interpreter</b> running in your browser. JSPP is a TypeScript-flavored language that compiles to modern C++20.</p>
+        <p class="line">Want to write your own JSPP? Open the playground - real editor, 2D and 3D modes, five working examples.</p>
         <div class="btns">
-            <a class="btn primary" href="./jspp.html">🎮 Open JSPP Playground →</a>
+            <a class="btn primary" href="./jspp.html">Open JSPP Playground</a>
             <a class="btn" href="https://github.com/StefanDjurkic/jspp" target="_blank" rel="noopener">JSPP repo</a>
             <a class="btn" href="https://github.com/StefanDjurkic/zeroengine" target="_blank" rel="noopener">ZeroEngine repo</a>
         </div>
     </div>
 </div>
 
-<div id="jspp-panel">
-    <div class="card">
-        <div class="panel-head">
-            <span class="title">scene.jspp — edit &amp; run</span>
-            <span class="badge" id="run-status"><span class="d"></span> live</span>
-        </div>
-        <textarea id="code-input" class="code-input" spellcheck="false" autocomplete="off"></textarea>
-        <pre id="run-err"></pre>
-        <div class="panel-foot">
-            <a class="btn primary" id="btn-run" href="#" style="padding:6px 14px;font-size:12px;">▶ Run (Ctrl+Enter)</a>
-            <a class="btn" id="btn-reset" href="#" style="padding:6px 12px;font-size:12px;">Reset</a>
-            <span class="hint-text">edits this JSPP program · drives the cube</span>
-        </div>
-    </div>
-</div>
-
-<div id="hint">click the cube · drag to rotate · scroll to zoom</div>
+<div id="hint">click the cube to change colors - drag to rotate - scroll to zoom</div>
 <div id="credit">Built by <a href="https://github.com/StefanDjurkic" target="_blank" rel="noopener">Stefan Djurkic</a></div>
 
 <script type="importmap">
@@ -137,22 +95,14 @@
 }
 </script>
 
-<!-- The actual JSPP program that controls the cube. -->
 <script type="text/jspp" id="jspp-source">
-// scene.jspp — this code runs every frame to animate the cube.
-// The JSPP interpreter is calling into Three.js via these builtins:
-//   setRotation(x, y)      — radians
-//   setScale(s)            — uniform
-//   setFaceColor(i, r,g,b) — 0..5, bytes
-//   log(msg)               — write to browser console
+// scene.jspp - runs every frame, drives the cube.
+// Host builtins: setRotation, setScale, setFaceColor, log
 
 let rotX = 0.0;
 let rotY = 0.0;
-let velX = 0.006;
-let velY = 0.009;
 let pulse = 0.0;
 
-// 6 cube faces: +X, -X, +Y, -Y, +Z, -Z
 let palette = [
     [255, 107, 107],
     [ 78, 205, 196],
@@ -169,25 +119,19 @@ function applyPalette() {
     }
 }
 
-// Called by the host ~60x per second. dt is seconds since last frame.
 function tick(t, dt) {
-    rotX = rotX + velX;
-    rotY = rotY + velY;
-
+    rotX = rotX + 0.006;
+    rotY = rotY + 0.009;
     if (pulse > 0.0) {
         pulse = pulse - dt * 2.5;
         if (pulse < 0.0) { pulse = 0.0; }
     }
-
-    let s = 1.0 + pulse * 0.25;
     setRotation(rotX, rotY);
-    setScale(s);
+    setScale(1.0 + pulse * 0.25);
 }
 
-// Called by the host when the user clicks the cube.
 function onClick() {
     pulse = 1.0;
-    // Rotate the palette so the cube changes color on each click.
     let first = palette[0];
     palette[0] = palette[1];
     palette[1] = palette[2];
@@ -196,34 +140,27 @@ function onClick() {
     palette[4] = palette[5];
     palette[5] = first;
     applyPalette();
-    log("cube clicked — palette rotated");
+    log("cube clicked");
 }
 
 applyPalette();
-log("scene.jspp booted — JSPP is now driving the cube");
+log("scene.jspp booted");
 </script>
 
 <script type="module">
 import * as THREE from "three";
 
-const bootEl     = document.getElementById("boot");
-const codeInput  = document.getElementById("code-input");
-const btnRun     = document.getElementById("btn-run");
-const btnReset   = document.getElementById("btn-reset");
-const runErrEl   = document.getElementById("run-err");
-const runStatus  = document.getElementById("run-status");
+const bootEl = document.getElementById("boot");
 const jsppSource = document.getElementById("jspp-source").textContent.trim();
-codeInput.value = jsppSource;
 
-// --- Three.js scene ---
 const canvas = document.getElementById("c");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight, false);
 renderer.setClearColor(0x0b0f17, 1);
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
 camera.position.set(3.2, 2.4, 4.2);
 camera.lookAt(0, 0, 0);
 
@@ -234,107 +171,69 @@ const rim = new THREE.DirectionalLight(0x88aaff, 0.6); rim.position.set(-4, -2, 
 const grid = new THREE.GridHelper(10, 20, 0x2a3347, 0x1a2233);
 grid.position.y = -1.2; scene.add(grid);
 
-// Cube: 6 materials (one per face), with wireframe outline overlay.
 const faceMats = [];
 for (let i = 0; i < 6; i++) {
-    faceMats.push(new THREE.MeshStandardMaterial({ color: 0x888888, roughness:.6, metalness:.15 }));
+    faceMats.push(new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.6, metalness: 0.15 }));
 }
 const cube = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), faceMats);
 scene.add(cube);
-const edges = new THREE.LineSegments(
+cube.add(new THREE.LineSegments(
     new THREE.EdgesGeometry(cube.geometry),
-    new THREE.LineBasicMaterial({ color: 0xffffff, transparent:true, opacity:.28 })
-);
-cube.add(edges);
+    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28 })
+));
 
-// --- JSPP interpreter + builtins ---
 const jspp = await import("./prototype/jspp.mjs");
+const interp = new jspp.Interpreter({ onOutput: (line) => console.log("[jspp]", line) });
+const g = interp.global;
+g.define("setRotation", (x, y) => { cube.rotation.x = Number(x) || 0; cube.rotation.y = Number(y) || 0; });
+g.define("setScale",    (s)    => { cube.scale.setScalar(Number(s) || 1); });
+g.define("setFaceColor",(idx, r, gc, b) => {
+    const m = faceMats[(idx | 0) % 6];
+    if (m) m.color.setRGB((Number(r) || 0) / 255, (Number(gc) || 0) / 255, (Number(b) || 0) / 255);
+});
+g.define("log", (...args) => console.log("[jspp]", ...args));
 
-let interp = null;
 let jsppTick = null;
 let jsppOnClick = null;
-
-function installBuiltins(i) {
-    const g = i.global;
-    g.define("setRotation", (x, y) => { cube.rotation.x = Number(x) || 0; cube.rotation.y = Number(y) || 0; });
-    g.define("setScale",    (s)    => { cube.scale.setScalar(Number(s) || 1); });
-    g.define("setFaceColor",(idx, r, g_, b) => {
-        const m = faceMats[(idx|0) % 6];
-        if (m) m.color.setRGB((Number(r)||0)/255, (Number(g_)||0)/255, (Number(b)||0)/255);
-    });
-    g.define("log", (...args) => console.log("[jspp]", ...args));
+try {
+    const parsed = jspp.parseSource(jsppSource, "scene.jspp");
+    interp.run(parsed.ast);
+    jsppTick = g.vars.get("tick");
+    jsppOnClick = g.vars.get("onClick");
+} catch (err) {
+    console.error("JSPP boot failed:", err);
+    bootEl.textContent = "JSPP boot failed: " + (err.message || err);
 }
 
-function loadJsppSource(src) {
-    try {
-        const ast = jspp.parseSource(src, "scene.jspp");
-        interp = new jspp.Interpreter({ onOutput: (line) => console.log("[jspp]", line) });
-        installBuiltins(interp);
-        interp.run(ast);
-        jsppTick    = interp.global.vars.get("tick");
-        jsppOnClick = interp.global.vars.get("onClick");
-        runErrEl.style.display = "none";
-        runErrEl.textContent = "";
-        runStatus.classList.remove("err");
-        runStatus.innerHTML = '<span class="d"></span> live';
-        return true;
-    } catch (err) {
-        console.error("JSPP error:", err);
-        runErrEl.textContent = String(err && err.message ? err.message : err);
-        runErrEl.style.display = "block";
-        runStatus.classList.add("err");
-        runStatus.innerHTML = '<span class="d"></span> error';
-        return false;
-    }
-}
-
-loadJsppSource(jsppSource);
-
-function runFromEditor(e) { if (e) e.preventDefault(); loadJsppSource(codeInput.value); }
-btnRun.addEventListener("click", runFromEditor);
-btnReset.addEventListener("click", (e) => { e.preventDefault(); codeInput.value = jsppSource; loadJsppSource(jsppSource); });
-codeInput.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); runFromEditor(); }
-    if (e.key === "Tab") {
-        e.preventDefault();
-        const s = codeInput.selectionStart, en = codeInput.selectionEnd;
-        codeInput.value = codeInput.value.slice(0, s) + "    " + codeInput.value.slice(en);
-        codeInput.selectionStart = codeInput.selectionEnd = s + 4;
-    }
-});
-
-// --- Mouse drag / zoom / click (no pointer lock) ---
-let dragging = false, lastX = 0, lastY = 0;
-let manualRotX = 0, manualRotY = 0; // extra rotation from user drag
+let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0;
+let extraRotX = 0, extraRotY = 0;
 const raycaster = new THREE.Raycaster();
-const mouseNdc = new THREE.Vector2();
-let downX = 0, downY = 0;
+const ndc = new THREE.Vector2();
 
 canvas.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
-    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    dragging = true;
+    lastX = e.clientX; lastY = e.clientY;
     downX = e.clientX; downY = e.clientY;
 });
 window.addEventListener("pointermove", (e) => {
     if (!dragging) return;
-    manualRotY += (e.clientX - lastX) * 0.005;
-    manualRotX += (e.clientY - lastY) * 0.005;
+    extraRotY += (e.clientX - lastX) * 0.005;
+    extraRotX += (e.clientY - lastY) * 0.005;
     lastX = e.clientX; lastY = e.clientY;
 });
 window.addEventListener("pointerup", (e) => {
     if (!dragging) return;
     dragging = false;
-    // click detection: small movement + originated on canvas
     if (e.target === canvas && Math.hypot(e.clientX - downX, e.clientY - downY) < 5) {
-        mouseNdc.x = (e.clientX / innerWidth) * 2 - 1;
-        mouseNdc.y = -(e.clientY / innerHeight) * 2 + 1;
-        raycaster.setFromCamera(mouseNdc, camera);
+        ndc.x = (e.clientX / innerWidth) * 2 - 1;
+        ndc.y = -(e.clientY / innerHeight) * 2 + 1;
+        raycaster.setFromCamera(ndc, camera);
         if (raycaster.intersectObject(cube, false).length > 0 && typeof jsppOnClick === "function") {
             try { jsppOnClick(); } catch (err) { console.error("onClick:", err); }
         }
     }
 });
-window.addEventListener("pointercancel", () => { dragging = false; });
 canvas.addEventListener("wheel", (e) => {
     e.preventDefault();
     const r = camera.position.length();
@@ -348,7 +247,6 @@ addEventListener("resize", () => {
     renderer.setSize(innerWidth, innerHeight, false);
 });
 
-// --- Main loop: JSPP runs every frame ---
 let last = performance.now();
 bootEl.classList.add("hidden");
 setTimeout(() => bootEl.remove(), 500);
@@ -356,21 +254,11 @@ setTimeout(() => bootEl.remove(), 500);
 function frame(now) {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-
     if (typeof jsppTick === "function") {
-        try { jsppTick(now / 1000, dt); }
-        catch (err) {
-            console.error("JSPP tick error:", err);
-            runErrEl.textContent = "tick: " + (err && err.message ? err.message : err);
-            runErrEl.style.display = "block";
-            runStatus.classList.add("err"); runStatus.innerHTML = '<span class="d"></span> error';
-            jsppTick = null;
-        }
+        try { jsppTick(now / 1000, dt); } catch (err) { console.error("tick:", err); jsppTick = null; }
     }
-    // Apply user's drag on top of what JSPP set.
-    cube.rotation.x += manualRotX; manualRotX = 0;
-    cube.rotation.y += manualRotY; manualRotY = 0;
-
+    cube.rotation.x += extraRotX; extraRotX = 0;
+    cube.rotation.y += extraRotY; extraRotY = 0;
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
 }
