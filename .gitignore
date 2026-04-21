@@ -1,0 +1,39 @@
+# Build artifacts
+target/
+**/target/
+pkg/
+**/pkg/
+*.wasm
+.tmp-deploy/
+.tmp-live-compare/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs / temp
+*.log
+tmp/
+temp/
+*.tmp
+
+# Secrets / deploy (user must provide their own)
+scripts/deploy_zeroengine.ps1
+scripts/deploy_zeroengine.sh
+*.pem
+.env
+.env.*
+
+# Test output
+test-results/
+playwright-report/
+playwright/.cache/

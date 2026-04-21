@@ -1,0 +1,70 @@
+# Deploy script (template)
+#
+# Copy this file to `deploy_zeroengine.ps1` and fill in your own values.
+# The real script is gitignored to avoid leaking server details.
+#
+# Usage (after filling in):
+#     ./scripts/deploy_zeroengine.ps1
+#     ./scripts/deploy_zeroengine.ps1 -SkipBuild
+#
+# Requires: PowerShell, wasm-pack, Python (for the bootstrap glb helper),
+#           OpenSSH client (`ssh` + `scp`).
+
+param(
+    [switch]$SkipBuild
+)
+
+$ErrorActionPreference = "Stop"
+
+# ---- Fill these in for your own environment -----------------------------
+$sshKey     = Join-Path $env:USERPROFILE ".ssh\YOUR_KEY.pem"   # Path to your SSH private key
+$remoteHost = "user@YOUR.SERVER.IP.OR.HOSTNAME"                # e.g. ubuntu@1.2.3.4
+$remoteDir  = "/var/www/YOUR_SITE/zeroengine"                  # Where files are served from
+$publicUrl  = "https://YOUR_DOMAIN/zeroengine/"                # Used for the post-deploy HEAD check
+# -------------------------------------------------------------------------
+
+$repoRoot          = Split-Path $PSScriptRoot -Parent
+$deployStagingRoot = Join-Path $repoRoot ".tmp-deploy\zeroengine"
+$sshOptions        = @("-i", $sshKey, "-o", "StrictHostKeyChecking=no")
+
+Push-Location $repoRoot
+try {
+    if (-not (Test-Path $sshKey)) {
+        throw "SSH key not found at $sshKey"
+    }
+
+    if (-not $SkipBuild) {
+        python .\scripts\generate_bootstrap_glb.py
+        wasm-pack build client --target web
+    }
+
+    $assetVersion = Get-Date -Format "yyyyMMddHHmmss"
+
+    if (Test-Path $deployStagingRoot) {
+        Remove-Item $deployStagingRoot -Recurse -Force
+    }
+    New-Item -ItemType Directory -Force -Path (Join-Path $deployStagingRoot "pkg") | Out-Null
+
+    $stagedIndex = (Get-Content .\client\index.html -Raw).Replace("__ZEROENGINE_ASSET_VERSION__", $assetVersion)
+    Set-Content -Path (Join-Path $deployStagingRoot "index.html") -Value $stagedIndex -NoNewline
+    Copy-Item .\client\pkg\* (Join-Path $deployStagingRoot "pkg") -Recurse -Force
+
+    & ssh @sshOptions $remoteHost "rm -rf ~/zeroengine-deploy; mkdir -p ~/zeroengine-deploy"
+    if ($LASTEXITCODE -ne 0) { throw "Failed to prepare remote staging directory" }
+
+    & scp @sshOptions (Join-Path $deployStagingRoot "index.html") "$remoteHost`:~/zeroengine-deploy/index.html"
+    if ($LASTEXITCODE -ne 0) { throw "Failed to upload index.html" }
+
+    & scp @sshOptions -r (Join-Path $deployStagingRoot "pkg") "$remoteHost`:~/zeroengine-deploy/"
+    if ($LASTEXITCODE -ne 0) { throw "Failed to upload pkg directory" }
+
+    $remoteCommand = "set -euo pipefail; sudo mkdir -p $remoteDir; sudo rsync -a --delete `"`$HOME/zeroengine-deploy/`" $remoteDir/; sudo chown -R www-data:www-data $remoteDir"
+    & ssh @sshOptions $remoteHost $remoteCommand
+    if ($LASTEXITCODE -ne 0) { throw "Failed to sync files into $remoteDir" }
+
+    Write-Host "Deployment complete: $publicUrl"
+    curl.exe -I $publicUrl
+}
+finally {
+    Pop-Location
+}

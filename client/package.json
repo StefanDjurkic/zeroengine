@@ -1,0 +1,15 @@
+{
+  "name": "jspp-zeroengine-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test_all.mjs",
+    "test:compat": "node test_browser_compat.mjs",
+    "test:node": "node ../../jspp/tests/run.mjs",
+    "test:browser": "node test_browser.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.59.1"
+  }
+}

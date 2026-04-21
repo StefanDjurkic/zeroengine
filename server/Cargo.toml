@@ -1,0 +1,10 @@
+[package]
+name = "zero_engine_server"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bevy_ecs.workspace = true
+glam.workspace = true
+tokio.workspace = true
+zero_engine_shared = { path = "../shared" }

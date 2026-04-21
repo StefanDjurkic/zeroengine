@@ -1,0 +1,10 @@
+[package]
+name = "zero_engine_shared"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+bevy_ecs.workspace = true
+bincode.workspace = true
+glam.workspace = true
+serde.workspace = true
