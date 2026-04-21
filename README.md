@@ -47,6 +47,7 @@ The same `generated.cpp` is **also compiled to WebAssembly** via Emscripten (`de
 | `fibonacci` | Recursive `fib(n)` for n = 0..9, printed one per line. Exercises functions, recursion, and integer codegen. |
 | `classes` | Defines a `Player` class with `health`, `name`, and a `takeDamage(amount)` method; creates two instances and mutates their state. Exercises class codegen, field access, and method dispatch. |
 | `demo` | A broader mix - variables, arithmetic, control flow, and string concat - to stress more of the compiler surface in a single program. |
+| `mandelbrot` | A 96x64 Mandelbrot. `main()` prints the grid dimensions followed by W\*H iteration counts; the playground paints those as pixels, so you are looking at a fractal whose every sample was computed by C++ compiled to wasm from a JSPP source. Exercises nested loops, doubles, and function calls in a tight inner loop. |
 
 Reproduce locally:
 

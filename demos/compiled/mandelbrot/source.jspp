@@ -1,0 +1,44 @@
+// Mandelbrot — computed pixel-by-pixel, printed as W*H iteration counts.
+// The playground paints these on a canvas to visualize the fractal.
+// Everything runs as compiled C++ -> WebAssembly in your browser.
+
+function mandel(cx: double, cy: double, maxIter: int): int {
+    let x: double = 0.0;
+    let y: double = 0.0;
+    let i: int = 0;
+    while (i < maxIter) {
+        let x2: double = x * x;
+        let y2: double = y * y;
+        let r2: double = x2 + y2;
+        if (r2 > 4.0) {
+            return i;
+        }
+        let xt: double = x2 - y2 + cx;
+        y = 2.0 * x * y + cy;
+        x = xt;
+        i = i + 1;
+    }
+    return maxIter;
+}
+
+function main(): int {
+    let W: int = 96;
+    let H: int = 64;
+    let MAX_ITER: int = 80;
+    print(W, H, MAX_ITER);
+    let dx: double = 3.0 / W;
+    let dy: double = 2.4 / H;
+    let py: int = 0;
+    while (py < H) {
+        let cy: double = -1.2 + dy * py;
+        let px: int = 0;
+        while (px < W) {
+            let cx: double = -2.1 + dx * px;
+            let it: int = mandel(cx, cy, MAX_ITER);
+            print(it);
+            px = px + 1;
+        }
+        py = py + 1;
+    }
+    return 0;
+}

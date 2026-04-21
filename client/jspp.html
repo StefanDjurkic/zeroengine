@@ -106,7 +106,7 @@ textarea#editor { flex:1 1 auto; min-height:160px;
         <div class="toolbar">
             <button id="btn-run" class="btn primary" title="Ctrl+Enter">Run</button>
             <button id="btn-reset" class="btn">Reset</button>
-            <button id="btn-compiled" class="btn" title="Show the C++ the JSPP compiler emits for this program, plus its native stdout">View compiled C++</button>
+            <button id="btn-compiled" class="btn" title="Render a fractal whose pixels are computed by C++ compiled to WebAssembly from a JSPP program">See the C++ wasm render</button>
             <span class="spacer"></span>
             <span class="hint">Ctrl+Enter to run</span>
         </div>
@@ -132,6 +132,7 @@ textarea#editor { flex:1 1 auto; min-height:160px;
             <button class="pill demo-pick" data-demo="fibonacci">fibonacci</button>
             <button class="pill demo-pick" data-demo="classes">classes</button>
             <button class="pill demo-pick" data-demo="demo">demo</button>
+            <button class="pill demo-pick" data-demo="mandelbrot" title="Fractal rendered from compiled-wasm output - click then open the 'run wasm' tab">mandelbrot *</button>
             <span style="flex:1;"></span>
             <span style="font-size:11px; color:var(--muted); align-self:center; letter-spacing:.08em; text-transform:uppercase;">view:</span>
             <button class="pill modal-tab active" data-tab="jspp">source.jspp</button>
@@ -139,7 +140,13 @@ textarea#editor { flex:1 1 auto; min-height:160px;
             <button class="pill modal-tab" data-tab="out">stdout</button>
             <button class="pill modal-tab" data-tab="wasm">run wasm</button>
         </div>
-        <pre id="modal-body" style="margin:0; padding:16px 18px; flex:1; overflow:auto; font-family:'Fira Code', Consolas, Monaco, monospace; font-size:12px; line-height:1.5; color:#d6deeb; background:#080c16; white-space:pre; tab-size:4;"></pre>
+        <div id="modal-content" style="flex:1; overflow:auto; background:#080c16; display:flex; flex-direction:column;">
+            <pre id="modal-body" style="margin:0; padding:16px 18px; flex:1; overflow:auto; font-family:'Fira Code', Consolas, Monaco, monospace; font-size:12px; line-height:1.5; color:#d6deeb; background:#080c16; white-space:pre; tab-size:4;"></pre>
+            <div id="modal-canvas-wrap" style="display:none; padding:16px 18px; gap:14px; align-items:flex-start; flex-wrap:wrap;">
+                <canvas id="modal-canvas" width="576" height="384" style="background:#000; image-rendering:pixelated; border:1px solid var(--stroke); border-radius:6px; max-width:100%;"></canvas>
+                <div id="modal-canvas-info" style="flex:1; min-width:220px; font-size:12px; color:#cbd5e1; line-height:1.55; font-family:'Fira Code',Consolas,Monaco,monospace;"></div>
+            </div>
+        </div>
         <div style="padding:10px 18px; border-top:1px solid var(--stroke); font-size:11px; color:var(--muted);">
             Two proofs, one source: <code style="color:#cbd5e1;">jspp source.jspp -o out.cpp</code> then either <code style="color:#cbd5e1;">g++ -std=c++20 out.cpp</code> (native) or <code style="color:#cbd5e1;">emcc -std=c++20 out.cpp -o demo.mjs</code> (wasm - the "run wasm" tab above). CI diffs both against <code style="color:#cbd5e1;">expected.txt</code>. Source at <a href="https://github.com/StefanDjurkic/zeroengine/tree/main/demos/compiled" target="_blank" rel="noopener" style="color:var(--accent);">demos/compiled</a>.
         </div>
@@ -584,6 +591,9 @@ editor.addEventListener("keydown", (e) => {
 // the stdout is what the compiled binary actually printed. CI re-runs it.
 const modal       = document.getElementById("modal");
 const modalBody   = document.getElementById("modal-body");
+const modalCanvasWrap = document.getElementById("modal-canvas-wrap");
+const modalCanvas = document.getElementById("modal-canvas");
+const modalCanvasInfo = document.getElementById("modal-canvas-info");
 const modalTabs   = [...document.querySelectorAll(".modal-tab")];
 const demoPicks   = [...document.querySelectorAll(".demo-pick")];
 const btnCompiled = document.getElementById("btn-compiled");
@@ -605,6 +615,15 @@ async function fetchArtifacts(name) {
     return cachedArtifacts[name];
 }
 
+function showTextView() {
+    modalBody.style.display = "block";
+    modalCanvasWrap.style.display = "none";
+}
+function showCanvasView() {
+    modalBody.style.display = "none";
+    modalCanvasWrap.style.display = "flex";
+}
+
 async function renderModal() {
     demoPicks.forEach(p => p.classList.toggle("active", p.dataset.demo === currentDemo));
     modalTabs.forEach(t => t.classList.toggle("active", t.dataset.tab === currentTab));
@@ -612,6 +631,7 @@ async function renderModal() {
         await runWasm(currentDemo);
         return;
     }
+    showTextView();
     modalBody.textContent = "Loading " + currentDemo + "/" + (currentTab === "jspp" ? "source.jspp" : currentTab === "cpp" ? "generated.cpp" : "expected.txt") + "...";
     try {
         const art = await fetchArtifacts(currentDemo);
@@ -622,6 +642,56 @@ async function renderModal() {
     }
 }
 
+// Paint the first line of mandelbrot stdout as "W H MAXITER" followed by W*H
+// iteration counts. Uses a warm palette (black-inside, bright bands outside).
+function paintMandelbrot(text) {
+    const parts = text.trim().split(/\s+/).map(Number);
+    const W = parts[0], H = parts[1], MAX = parts[2];
+    const expected = 3 + W * H;
+    if (parts.length < expected) {
+        modalCanvasInfo.textContent = "mandelbrot stdout too short: got " + parts.length + " tokens, want " + expected;
+        return;
+    }
+    const scale = Math.max(1, Math.floor(Math.min(modalCanvas.width / W, modalCanvas.height / H)));
+    modalCanvas.width  = W * scale;
+    modalCanvas.height = H * scale;
+    const ctx = modalCanvas.getContext("2d");
+    const img = ctx.createImageData(W * scale, H * scale);
+    for (let py = 0; py < H; py++) {
+        for (let px = 0; px < W; px++) {
+            const it = parts[3 + py * W + px];
+            let r, g, b;
+            if (it >= MAX) {
+                r = 0; g = 0; b = 0;
+            } else {
+                const t = it / MAX;
+                // warm gradient
+                r = Math.floor(255 * Math.min(1, 1.6 * t));
+                g = Math.floor(255 * Math.min(1, Math.max(0, 1.8 * t - 0.4)));
+                b = Math.floor(255 * Math.min(1, Math.max(0, 2.0 * t - 1.1)));
+            }
+            for (let sy = 0; sy < scale; sy++) {
+                for (let sx = 0; sx < scale; sx++) {
+                    const o = 4 * (((py * scale + sy) * W * scale) + (px * scale + sx));
+                    img.data[o]     = r;
+                    img.data[o + 1] = g;
+                    img.data[o + 2] = b;
+                    img.data[o + 3] = 255;
+                }
+            }
+        }
+    }
+    ctx.putImageData(img, 0, 0);
+    modalCanvasInfo.innerHTML =
+        "<b style='color:#7ee787'>[OK] pixels below were computed by wasm</b><br><br>" +
+        "<span style='color:var(--muted)'>grid:</span> " + W + " x " + H + "<br>" +
+        "<span style='color:var(--muted)'>max iter:</span> " + MAX + "<br>" +
+        "<span style='color:var(--muted)'>total samples:</span> " + (W * H).toLocaleString() + "<br><br>" +
+        "Every pixel is one iteration count printed by the compiled binary's main(). " +
+        "Same C++, built native (g++) and to wasm (emcc); both produce identical output. " +
+        "CI re-runs this on every push.";
+}
+
 // ---------- Run the demo's wasm ----------
 // The deployed site ships /demos/compiled/<name>/demo.mjs (+ demo.wasm),
 // produced in CI by: emcc -std=c++20 -O2 generated.cpp -o demo.mjs -sMODULARIZE
@@ -629,14 +699,26 @@ async function renderModal() {
 // We import it as an ES module, hand it a print callback, call main(),
 // and compare the captured stdout to the committed expected.txt. Green
 // means the same C++ produces the same stdout whether you build it native
-// with g++ or as wasm with emcc.
+// with g++ or as wasm with emcc. For the mandelbrot demo the output is a
+// grid of iteration counts, which we paint onto a canvas.
 async function runWasm(name) {
-    modalBody.textContent = "Fetching wasm module for " + name + "...";
+    const visual = (name === "mandelbrot");
+    if (visual) {
+        showCanvasView();
+        modalCanvasInfo.textContent = "Loading wasm module...";
+        const ctx = modalCanvas.getContext("2d");
+        ctx.fillStyle = "#0c1220";
+        ctx.fillRect(0, 0, modalCanvas.width, modalCanvas.height);
+    } else {
+        showTextView();
+        modalBody.textContent = "Fetching wasm module for " + name + "...";
+    }
     let art;
     try {
         art = await fetchArtifacts(name);
     } catch (err) {
-        modalBody.textContent = "Could not load expected stdout: " + err.message;
+        const msg = "Could not load expected stdout: " + err.message;
+        if (visual) modalCanvasInfo.textContent = msg; else modalBody.textContent = msg;
         return;
     }
     let factory;
@@ -644,14 +726,16 @@ async function runWasm(name) {
         const mod = await import(/* @vite-ignore */ "./demos/compiled/" + name + "/demo.mjs");
         factory = mod.default;
     } catch (err) {
-        modalBody.textContent =
+        const msg =
             "Failed to load demos/compiled/" + name + "/demo.mjs\n\n" +
             err.message + "\n\n" +
             "This works only on the deployed site after the wasm build completes. " +
             "If you are running locally without Pages deploy, the .mjs/.wasm files will not exist.";
+        if (visual) modalCanvasInfo.textContent = msg; else modalBody.textContent = msg;
         return;
     }
-    modalBody.textContent = "Instantiating wasm and calling main()...";
+    if (visual) modalCanvasInfo.textContent = "Instantiating wasm and calling main()...";
+    else modalBody.textContent = "Instantiating wasm and calling main()...";
     const lines = [];
     try {
         const instance = await factory({
@@ -662,10 +746,15 @@ async function runWasm(name) {
         });
         instance.callMain([]);
     } catch (err) {
-        modalBody.textContent = "wasm runtime error:\n" + (err && err.message ? err.message : err);
+        const msg = "wasm runtime error:\n" + (err && err.message ? err.message : err);
+        if (visual) modalCanvasInfo.textContent = msg; else modalBody.textContent = msg;
         return;
     }
     const actual = lines.join("\n") + "\n";
+    if (visual) {
+        paintMandelbrot(actual);
+        return;
+    }
     const expected = art.out;
     const matches = actual === expected;
     const header = matches
@@ -679,7 +768,7 @@ async function runWasm(name) {
     modalBody.scrollTop = 0;
 }
 
-btnCompiled.addEventListener("click", () => { modal.style.display = "flex"; renderModal(); });
+btnCompiled.addEventListener("click", () => { currentDemo = "mandelbrot"; currentTab = "wasm"; modal.style.display = "flex"; renderModal(); });
 btnClose.addEventListener("click", () => { modal.style.display = "none"; });
 modal.addEventListener("click", (e) => { if (e.target === modal) modal.style.display = "none"; });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") modal.style.display = "none"; });
