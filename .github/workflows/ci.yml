@@ -71,3 +71,43 @@ jobs:
 
       - name: Build client as wasm
         run: cargo build -p zero_engine_client --target wasm32-unknown-unknown --release
+
+  jspp-pipeline:
+    name: JSPP compiler pipeline (verify compiled demos)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout zeroengine
+        uses: actions/checkout@v4
+
+      - name: Checkout jspp
+        uses: actions/checkout@v4
+        with:
+          repository: StefanDjurkic/jspp
+          path: _jspp
+
+      - name: Install build deps
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends cmake g++ ninja-build
+
+      - name: Build jspp compiler
+        working-directory: _jspp
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target jspp --parallel
+
+      - name: Locate jspp binary
+        id: locate
+        run: |
+          if [ -x _jspp/build/jspp ]; then
+            echo "bin=$PWD/_jspp/build/jspp" >> "$GITHUB_OUTPUT"
+          elif [ -x _jspp/build/jspp-ship ]; then
+            echo "bin=$PWD/_jspp/build/jspp-ship" >> "$GITHUB_OUTPUT"
+          else
+            echo "could not find jspp binary" >&2
+            ls -la _jspp/build
+            exit 1
+          fi
+
+      - name: Verify all compiled demos reproduce bit-for-bit
+        run: |
+          chmod +x demos/compiled/verify.sh
+          demos/compiled/verify.sh "${{ steps.locate.outputs.bin }}"

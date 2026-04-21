@@ -1,0 +1,25 @@
+// Fibonacci — recursive and iterative
+
+function fibRecursive(n: int): int {
+    if (n <= 1) {
+        return n;
+    }
+    return fibRecursive(n - 1) + fibRecursive(n - 2);
+}
+
+function fibIterative(n: int): int {
+    let a: int = 0;
+    let b: int = 1;
+    for (let i = 0; i < n; i++) {
+        let temp = b;
+        b = a + b;
+        a = temp;
+    }
+    return a;
+}
+
+function main(): int {
+    console.log("Recursive fib(10):", fibRecursive(10));
+    console.log("Iterative fib(10):", fibIterative(10));
+    return 0;
+}

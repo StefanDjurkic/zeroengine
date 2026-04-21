@@ -12,6 +12,51 @@ ZeroEngine is also the **browser host** for the [JSPP](https://github.com/Stefan
 
 > This is experimental, pre-alpha code. Expect breakage.
 
+## Demos
+
+ZeroEngine ships three flavors of demo that together cover the full JSPP story: live interpreter on the landing page, live interpreter in the playground, and a committed compile pipeline with CI re-verification.
+
+### Landing page cube — `client/index.html`
+
+Live at https://stefandjurkic.github.io/zeroengine/. A small JSPP script drives a Three.js cube: rotation, scale, per-face colors, and click behavior are all written in JSPP. The JS reference interpreter (`prototype/jspp.mjs` from the JSPP repo) runs that JSPP source in the browser and calls into Three.js to render. You are watching JSPP semantics execute, not a canned animation.
+
+### Playground — `client/jspp.html`
+
+Live at https://stefandjurkic.github.io/zeroengine/jspp.html. A real editor with Run / Reset, console output, and six scene pills:
+
+| Scene | What it does |
+|---|---|
+| `hello` | Fills the canvas with a backdrop, then draws randomized rectangles and circles using `drawRect` / `drawCircle`. Re-run to reshuffle. |
+| `loops` | Nested `for` loops paint a grid of circles with a hue-shifting color ramp. |
+| `functions` | Recursive Fibonacci + a JSPP function that draws each value as a bar chart. |
+| `classes` | Declares a `Ball` class with fields and methods, instantiates a handful, and renders them. |
+| `bouncing` | Animated via a user-defined `tick(t)` function; balls bounce off canvas walls every frame. |
+| `3D cube` | Switches the host to Three.js mode. The JSPP `tick(dt)` function calls `setRotation`, `setScale`, and `setFaceColor` to drive a real 3D cube. |
+
+Hit **View compiled C++** in the toolbar to pop open a viewer over the four compile-pipeline demos below (source, emitted C++, stdout) - the artifacts are fetched from `/demos/compiled/` on the deployed site.
+
+### Compile pipeline — `demos/compiled/`
+
+Four JSPP programs round-tripped through the **full** `jspp -> .cpp -> native binary` pipeline. Each folder commits `source.jspp`, `generated.cpp` (what the JSPP compiler emitted, verbatim), and `expected.txt` (what the compiled native binary actually printed). `demos/compiled/verify.sh` rebuilds every artifact from scratch and diffs against the committed copies, and the `jspp-pipeline` CI job runs it on every push.
+
+| Demo | What it does |
+|---|---|
+| `hello` | Smallest possible program: `print("Hello, World!")`. Verifies `print` / string literal codegen end to end. |
+| `fibonacci` | Recursive `fib(n)` for n = 0..9, printed one per line. Exercises functions, recursion, and integer codegen. |
+| `classes` | Defines a `Player` class with `health`, `name`, and a `takeDamage(amount)` method; creates two instances and mutates their state. Exercises class codegen, field access, and method dispatch. |
+| `demo` | A broader mix - variables, arithmetic, control flow, and string concat - to stress more of the compiler surface in a single program. |
+
+Reproduce locally:
+
+```bash
+# from the JSPP repo (https://github.com/StefanDjurkic/jspp)
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+
+# from this repo
+demos/compiled/verify.sh /path/to/jspp/build/jspp
+```
+
 ## Tech stack
 
 | Layer | Technology |

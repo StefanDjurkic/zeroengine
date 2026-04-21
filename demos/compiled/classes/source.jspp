@@ -1,0 +1,74 @@
+// Class + inheritance in JSPP
+
+class Entity {
+    name: string;
+    x: double = 0.0;
+    y: double = 0.0;
+    health: int;
+
+    constructor(name: string, health: int) {
+        this.name = name;
+        this.health = health;
+    }
+
+    function takeDamage(amount: int): void {
+        this.health -= amount;
+        if (this.health < 0) {
+            this.health = 0;
+        }
+    }
+
+    function isAlive(): bool {
+        return this.health > 0;
+    }
+
+    function moveTo(newX: double, newY: double): void {
+        this.x = newX;
+        this.y = newY;
+    }
+}
+
+class Player extends Entity {
+    score: int = 0;
+    level: int = 1;
+
+    constructor(name: string) {
+        super(name, 100);
+    }
+
+    function addScore(points: int): void {
+        this.score += points;
+        if (this.score >= this.level * 1000) {
+            this.level += 1;
+            console.log(this.name, "leveled up to", this.level);
+        }
+    }
+}
+
+class Enemy extends Entity {
+    damage: int;
+
+    constructor(name: string, health: int, damage: int) {
+        super(name, health);
+        this.damage = damage;
+    }
+
+    function attack(ref target: Entity): void {
+        console.log(this.name, "attacks", target.name, "for", this.damage, "damage!");
+        target.takeDamage(this.damage);
+    }
+}
+
+function main(): int {
+    let player = Player("Hero");
+    let goblin = Enemy("Goblin", 30, 5);
+
+    console.log(player.name, "HP:", player.health);
+    goblin.attack(player);
+    console.log(player.name, "HP:", player.health);
+
+    player.addScore(500);
+    console.log("Score:", player.score);
+
+    return 0;
+}

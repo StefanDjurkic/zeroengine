@@ -1,0 +1,102 @@
+// ============================================
+// JSPP Demo — JavaScript syntax, C++ power
+// ============================================
+
+// --- Variables with type inference ---
+let name: string = "JSPP";
+let version: int = 1;
+let pi: double = 3.14159;
+
+// --- Functions (auto params = C++20 abbreviated templates) ---
+function add(a: int, b: int): int {
+    return a + b;
+}
+
+function greet(who: string): string {
+    return "Hello, " + who + "!";
+}
+
+// --- Factorial with recursion ---
+function factorial(n: int): int {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * factorial(n - 1);
+}
+
+// --- Arrays ---
+let scores: int[] = [95, 87, 72, 64, 100];
+let total: int = 0;
+for (let i: int = 0; i < scores.length; i++) {
+    total = total + scores[i];
+}
+
+// --- Classes with inheritance ---
+class Animal {
+    name: string;
+    sound: string;
+
+    constructor(name: string, sound: string) {
+        this.name = name;
+        this.sound = sound;
+    }
+
+    function speak(): string {
+        return this.name + " says " + this.sound;
+    }
+}
+
+class Dog extends Animal {
+    constructor(name: string) {
+        super(name, "Woof!");
+    }
+}
+
+// --- Enum ---
+enum Color {
+    Red = 0,
+    Green = 1,
+    Blue = 2
+}
+
+// --- Switch ---
+function colorName(c: int): string {
+    switch (c) {
+        case 0:
+            return "Red";
+        case 1:
+            return "Green";
+        case 2:
+            return "Blue";
+        default:
+            return "Unknown";
+    }
+}
+
+// --- Arrow functions ---
+let dbl = (x: int): int => x * 2;
+
+// --- For-of loop ---
+let fruits: string[] = ["apple", "banana", "cherry"];
+
+// --- Output everything ---
+print("=== JSPP Demo ===");
+print("Language:", name, "v" + version);
+print("Pi:", pi);
+print("add(10, 20):", add(10, 20));
+print("greet:", greet("World"));
+print("factorial(6):", factorial(6));
+print("scores total:", total);
+print("average:", total / 5);
+
+let rex = new Dog("Rex");
+print("dog:", rex.speak());
+
+print("color 1:", colorName(1));
+print("dbl(21):", dbl(21));
+
+for (let f of fruits) {
+    print("fruit:", f);
+}
+
+print("=== Done ===");

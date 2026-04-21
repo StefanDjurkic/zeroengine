@@ -65,6 +65,9 @@ jobs:
           cp _jspp/prototype/jspp.mjs         _site/prototype/
           cp _jspp/prototype/typechecker.mjs  _site/prototype/
           cp -r client/pkg/*              _site/pkg/
+          # Ship the compiled demos so the playground can fetch source/cpp/stdout.
+          mkdir -p _site/demos
+          cp -r demos/compiled            _site/demos/
           # GitHub Pages sometimes serves .wasm with the wrong MIME type.
           echo "/*.wasm  application/wasm" > _site/_headers
           # Disable Jekyll so files starting with _ are served verbatim.
