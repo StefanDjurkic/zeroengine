@@ -66,8 +66,10 @@ jobs:
           set -e
           mkdir -p _jspp/build
           cd _jspp/build
-          cmake ..
-          cmake --build . --config Release -j
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          # Build ONLY the compiler target; jspp-ship needs sokol/OpenGL deps we
+          # don't ship cross-platform.
+          cmake --build . --config Release --target jspp -j
           ls -la
 
       - name: Stage jspp binary into desktop/resources/
