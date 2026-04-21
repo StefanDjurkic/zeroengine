@@ -16,8 +16,11 @@ fn main() {
             bridge::bridge_info,
             bridge::compile_jspp,
             bridge::run_cpp_native,
+            bridge::compile_and_run,
             bridge::open_browser,
             bridge::pick_toolchain,
+            bridge::read_text_file,
+            bridge::save_text_file,
         ])
         .setup(|app| {
             // Build native menu: File / View / Help.
