@@ -4,13 +4,35 @@
 [![Deploy](https://github.com/StefanDjurkic/zeroengine/actions/workflows/pages.yml/badge.svg)](https://github.com/StefanDjurkic/zeroengine/actions/workflows/pages.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**🎮 Live demo:** https://stefandjurkic.github.io/zeroengine/ — spins up the WebAssembly runtime and renders the 3D cube straight from the browser.
+**🎮 Live demo:** https://stefandjurkic.github.io/zeroengine/ — home page, playground, and sample-app gallery, all running in the browser on top of the JSPP reference interpreter and Three.js.
 
-**🖥️ Desktop app:** [Download ZeroEngine Desktop](https://github.com/StefanDjurkic/zeroengine/releases/latest) — a Tauri shell that *is* a browser *and* a JSPP playground *and* a local compile bridge. Inside the desktop app, the playground's "Run as compiled C++" button sends your editor source through the JSPP compiler, builds the resulting C++ with your local toolchain (`g++` / `clang++` / `cl`), and executes the native binary. Real C++, really running, from whatever you just typed. See [`desktop/`](./desktop/) for details.
+**🖥️ Desktop app:** [Download ZeroEngine Desktop](https://github.com/StefanDjurkic/zeroengine/releases/latest) — a Tauri shell that *is* a home page, a browser, a JSPP playground, and a local compile bridge. Inside the desktop app, the playground's "Run as compiled C++" button sends your editor source through the [JSPP](https://github.com/StefanDjurkic/jspp) compiler, builds the resulting C++ with your local toolchain (`g++` / `clang++` / `cl`), and executes the native binary. Real C++, really running, from whatever you just typed.
 
-A browser-native game engine prototype written in Rust, targeting WebAssembly + WebGPU via [`wgpu`](https://github.com/gfx-rs/wgpu). Client and server share a single Rust workspace so network messages, components, and constants are compile-time checked on both sides.
+## Why JSPP?
 
-ZeroEngine is also the **browser host** for the [JSPP](https://github.com/StefanDjurkic/jspp) language. JSPP programs can run in the ZeroEngine browser page and use its drawing builtins (`drawRect`, `drawCircle`, `drawLine`, `clear`).
+AI writes better JavaScript than C++. There's more JS in every training set, the syntax is more regular, and there are fewer footguns — no manual memory management, no header files, no template metaprogramming. JSPP exploits that gap: give the AI a language it already knows how to write, and let the compiler handle the hard translation to native code. The AI stays in its comfort zone. You still get C++ speed.
+
+## What this app does today
+
+ZeroEngine is a single **page-and-desktop** experience wired around the JSPP language. The *same* HTML home page is served both by GitHub Pages and by the Tauri desktop shell:
+
+- **Home page (`client/index.html`)** — a launcher grid with four tiles: Playground, Browser, Compile Bridge, and ZeroEngine Apps. The Compile Bridge tile auto-probes `http://127.0.0.1:17849/info` every few seconds, so the **public website lights up live when the desktop engine is running on your machine** and goes dark when it quits.
+- **Playground (`client/jspp.html`)** — a real editor with six curated scenes plus an **Apps** button that opens the sample-app gallery inline. Each program runs live on a 2D canvas or drives a Three.js cube. Loading a sample swaps the header from "JSPP Playground" into a dedicated app view (icon, name, description, Exit button).
+- **Native C++ compile bridge** — the desktop app bundles the JSPP compiler next to `ZeroEngine.exe` and exposes two commands: `bridge_info` and `compile_and_run`. It also starts an Axum HTTP server on `127.0.0.1:17849` that the public website is allow-listed to call, so `stefandjurkic.github.io/zeroengine/` can compile and run your JSPP as **real native C++** on your machine while you stay on the web.
+- **Visual replay protocol** — compiled C++ binaries emit a tiny `@C`/`@R`/`@O`/`@L`/`@F`/`@E` line protocol to stdout; the playground parses those frames and replays them on the canvas at 60 FPS. You are watching a native binary's stdout, pixel by pixel.
+- **Per-frame benchmark** — a **Benchmark** button runs the current program both through the JSPP reference interpreter and through the native C++ pipeline, then reports per-frame cost for each and the speedup ratio.
+- **Custom apps** — bundled `.zeroapp`s (bouncy balls, 400-particle field, starfield, double pendulum, ripples, 3D cube) live in `client/sample_apps.mjs` and are shared by both the home page and the playground. The desktop app can also load `.zeroapp` folders from disk.
+
+### Sample apps (shared home ↔ playground gallery)
+
+| App | Mode | What it does |
+|---|---|---|
+| Bouncy Balls | 2D | 24 colored balls with dt-based physics, walls at 640×520. |
+| Particle Field | 2D | 400 particles on rotating, pulsing orbits — heavy per-frame workload. |
+| Starfield | 2D | 300 stars streaking outward from the center. |
+| Pendulum Clock | 2D | Double pendulum with a 90-point trailing comet. |
+| Ripples | 2D | Concentric rings expanding from randomly seeded points. |
+| 3D Rotating Cube | 3D | Drives a real Three.js cube via `setRotation` / `setFaceColor`, pure JSPP. |
 
 > This is experimental, pre-alpha code. Expect breakage.
 
@@ -18,7 +40,7 @@ ZeroEngine is also the **browser host** for the [JSPP](https://github.com/Stefan
 
 ZeroEngine ships three flavors of demo that together cover the full JSPP story: live interpreter on the landing page, live interpreter in the playground, and a committed compile pipeline with CI re-verification.
 
-### Landing page cube — `client/index.html`
+### Landing page — `client/index.html`
 
 Live at https://stefandjurkic.github.io/zeroengine/. A small JSPP script drives a Three.js cube: rotation, scale, per-face colors, and click behavior are all written in JSPP. The JS reference interpreter (`prototype/jspp.mjs` from the JSPP repo) runs that JSPP source in the browser and calls into Three.js to render. You are watching JSPP semantics execute, not a canned animation.
 

@@ -29,7 +29,7 @@ canvas { background:#0e131f; border:1px solid var(--stroke); border-radius:8px;
     text-decoration:none; background:var(--panel); border:1px solid var(--stroke);
     padding:6px 12px; border-radius:8px; }
 #remote-bridge-badge {
-    position:absolute; top:12px; right:80px;
+    position:absolute; top:12px; right:130px;
     font-family: 'Fira Code', Consolas, Monaco, monospace;
     font-size:11px; padding:6px 10px; border-radius:999px;
     color:#bbf7d0; background:rgba(6,28,18,.85); border:1px solid #065f46;
@@ -116,6 +116,7 @@ textarea#editor { flex:1 1 auto; min-height:160px;
 <div class="view">
     <span id="view-badge"><span class="dot"></span><span id="mode-label">JSPP to Canvas2D</span></span>
     <a id="back" href="./">back</a>
+    <button id="btn-apps" title="Browse sample .zeroapp bundles" style="position:absolute; top:12px; right:80px; font-size:12px; color:var(--text); background:var(--panel); border:1px solid var(--stroke); padding:6px 12px; border-radius:8px; cursor:pointer; font-family:inherit;">Apps</button>
     <span id="remote-bridge-badge" style="display:none;" title="The page is connected to a local ZeroEngine Desktop running on this machine. Compile requests go through http://127.0.0.1:17849.">[bridge] desktop</span>
     <div id="app-banner" style="display:none;"></div>
     <canvas id="canvas2d" width="640" height="520"></canvas>
@@ -125,9 +126,23 @@ textarea#editor { flex:1 1 auto; min-height:160px;
 
 <div class="side">
     <div class="head">
-        <div>
+        <div id="head-default">
             <div class="title brand"><span class="j">JSPP</span> Playground</div>
             <div class="sub">write JSPP, hit Run, watch the canvas</div>
+        </div>
+        <div id="head-app" style="display:none; flex:1;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span id="head-app-icon" style="font-size:22px; line-height:1;"></span>
+                <div style="min-width:0;">
+                    <div class="title" style="display:flex; align-items:center; gap:8px;">
+                        <span id="head-app-name" style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></span>
+                        <span id="head-app-ver" style="font-family:'Fira Code',Consolas,monospace; font-size:10px; color:#a5f3fc; font-weight:500;"></span>
+                    </div>
+                    <div class="sub" id="head-app-desc" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px;"></div>
+                </div>
+                <span style="flex:1;"></span>
+                <button id="head-app-exit" class="btn" title="Leave app view and return to the editor" style="padding:4px 10px; font-size:11px;">Exit app</button>
+            </div>
         </div>
     </div>
 
@@ -149,10 +164,12 @@ textarea#editor { flex:1 1 auto; min-height:160px;
             <button id="btn-open" class="btn" disabled title="Open a .jspp file from disk (desktop only)">Open</button>
             <button id="btn-save" class="btn" disabled title="Save current editor source to disk (desktop only)">Save</button>
             <button id="btn-compile-cpp" class="btn" disabled title="Dev tool: compile this JSPP through the real C++ compiler and show the output text. Requires ZeroEngine Desktop." style="font-size:12px; opacity:.75">C++ (dev)</button>
+            <button id="btn-benchmark" class="btn" disabled title="Run the current program both in the JS reference interpreter and as compiled native C++, then compare per-frame cost. Requires ZeroEngine Desktop." style="font-size:12px; opacity:.75">Benchmark</button>
             <button id="btn-cpp-settings" class="btn" disabled title="Compile settings (desktop only)" style="font-size:12px; opacity:.75">⚙</button>
             <span class="spacer"></span>
             <span class="hint">Ctrl+Enter run · Ctrl+Shift+Enter C++</span>
         </div>
+        <div id="perf-panel" style="display:none; margin:0 8px 8px; padding:10px 12px; background:var(--bg-1,#121826); border:1px solid var(--stroke,#2a3347); border-radius:10px; font-size:12px; font-family:'Fira Code',Consolas,Monaco,monospace; line-height:1.6;"></div>
         <div id="cpp-settings" style="display:none; margin:0 8px 8px; padding:10px 12px; background:var(--bg-1, #121826); border:1px solid var(--stroke, #2a3347); border-radius:10px; font-size:12px;">
             <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
                 <label style="display:flex; align-items:center; gap:6px;">
@@ -178,6 +195,39 @@ textarea#editor { flex:1 1 auto; min-height:160px;
         </div>
     </div>
 </div>
+
+<div id="apps-modal" style="display:none; position:fixed; inset:0; z-index:55; background:rgba(5,9,19,.82); backdrop-filter: blur(6px); align-items:center; justify-content:center; padding:24px;">
+    <div style="background:var(--bg-1); border:1px solid var(--stroke); border-radius:14px; width:min(920px, 96vw); max-height:88vh; display:flex; flex-direction:column; overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--stroke);">
+            <div style="font-size:22px;">[A]</div>
+            <div style="flex:1;">
+                <div style="font-weight:700; font-size:16px;">Sample Apps</div>
+                <div style="font-size:11px; color:var(--muted); margin-top:2px;">Pick a bundled <code style="font-family:'Fira Code',Consolas,monospace; color:#cbd5e1; background:rgba(0,0,0,.3); padding:1px 5px; border-radius:4px;">.zeroapp</code> to open in the Playground. Each one is a JSPP program that compiles to native C++ and replays here at 60 FPS.</div>
+            </div>
+            <button id="apps-modal-close" class="btn" style="padding:4px 10px;">close</button>
+        </div>
+        <div id="apps-sample-grid" style="padding:18px 20px; overflow:auto; display:grid; gap:14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));"></div>
+    </div>
+</div>
+
+<style>
+#apps-sample-grid .sample {
+    background:linear-gradient(180deg, rgba(26,34,51,.85), rgba(18,24,38,.85));
+    border:1px solid var(--stroke); border-radius:12px; padding:16px; cursor:pointer;
+    display:flex; flex-direction:column; gap:6px; transition: transform .15s, border-color .15s;
+}
+#apps-sample-grid .sample:hover { transform: translateY(-2px); border-color: var(--accent); }
+#apps-sample-grid .ic { font-size:22px; }
+#apps-sample-grid .nm { font-weight:700; font-size:14px; color:#fff; }
+#apps-sample-grid .dc { font-size:12px; color:var(--muted); line-height:1.4; }
+#apps-sample-grid .meta { display:flex; gap:8px; margin-top:6px; }
+#apps-sample-grid .tag {
+    font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+    padding:2px 7px; border-radius:999px; border:1px solid var(--stroke); color:var(--muted);
+}
+#apps-sample-grid .tag.c2d { color:var(--accent); border-color: rgba(34,211,238,.4); background:rgba(34,211,238,.08); }
+#apps-sample-grid .tag.c3d { color:var(--accent-2); border-color: rgba(167,139,250,.4); background:rgba(167,139,250,.08); }
+</style>
 
 <div id="cpp-modal" style="display:none; position:fixed; inset:0; z-index:50; background:rgba(5,9,19,.82); backdrop-filter: blur(6px); align-items:center; justify-content:center; padding:24px;">
     <div style="background:var(--bg-1); border:1px solid var(--stroke); border-radius:14px; width:min(980px, 96vw); max-height:88vh; display:flex; flex-direction:column; overflow:hidden;">
@@ -214,6 +264,7 @@ textarea#editor { flex:1 1 auto; min-height:160px;
 
 <script type="module">
 import * as THREE from "three";
+import { SAMPLE_APPS, appToPending } from "./sample_apps.mjs";
 
 const EXAMPLES = {
 hello:
@@ -1217,8 +1268,53 @@ if (editor) {
 
 // ---------- .zeroapp handoff ----------
 // If the shell stashed a pending app in sessionStorage, skip the default
-// scene, load the app's source into the editor, show a banner, and auto-run
-// it natively (when the bridge is available).
+// scene, load the app's source into the editor, switch to the app-view
+// header, and auto-run it natively (when the bridge is available).
+let currentApp = null;
+
+function enterAppMode(app) {
+    currentApp = app;
+    editor.value = app.source;
+    try { localStorage.setItem("zeroengine.jspp-source", app.source); } catch {}
+
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+    // Swap the side panel header from "JSPP Playground" to the app card.
+    document.getElementById("head-default").style.display = "none";
+    const headApp = document.getElementById("head-app");
+    headApp.style.display = "block";
+    document.getElementById("head-app-icon").textContent = app.icon || (app.mode === "3d" ? "[3]" : "[A]");
+    document.getElementById("head-app-name").textContent = app.name || "Untitled app";
+    document.getElementById("head-app-ver").textContent = app.version ? ("v" + app.version) : "";
+    document.getElementById("head-app-desc").textContent = app.description || "";
+    document.title = (app.name || "App") + " — ZeroEngine";
+
+    // Show the subtle banner on the canvas too (description + close button).
+    const banner = document.getElementById("app-banner");
+    const ver = app.version ? `<span class="ver">v${esc(app.version)}</span>` : "";
+    const desc = app.description ? `<span class="desc">— ${esc(app.description)}</span>` : "";
+    banner.innerHTML =
+        `<span class="name">${esc(app.name || "Unnamed app")}</span>${ver}${desc}` +
+        `<span class="spacer"></span>` +
+        `<button id="app-banner-close" title="Exit app view and return to Playground">close</button>`;
+    banner.style.display = "flex";
+    document.getElementById("app-banner-close").addEventListener("click", exitAppMode);
+
+    // Set the mode so the right canvas is visible before the first frame.
+    setMode(app.mode === "3d" ? "3d" : "2d");
+}
+
+function exitAppMode() {
+    currentApp = null;
+    document.getElementById("head-app").style.display = "none";
+    document.getElementById("head-default").style.display = "block";
+    document.getElementById("app-banner").style.display = "none";
+    document.title = "JSPP Playground";
+    loadScene("hello");
+}
+document.getElementById("head-app-exit").addEventListener("click", exitAppMode);
+
 function applyPendingZeroApp() {
     let raw;
     try { raw = sessionStorage.getItem("zeroengine.pending-app"); } catch { return false; }
@@ -1229,29 +1325,12 @@ function applyPendingZeroApp() {
     try { app = JSON.parse(raw); } catch { return false; }
     if (!app || typeof app.source !== "string") return false;
 
-    editor.value = app.source;
-    try { localStorage.setItem("zeroengine.jspp-source", app.source); } catch {}
+    enterAppMode(app);
 
-    const banner = document.getElementById("app-banner");
-    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-    }[c]));
-    const ver = app.version ? `<span class="ver">v${esc(app.version)}</span>` : "";
-    const desc = app.description ? `<span class="desc">— ${esc(app.description)}</span>` : "";
-    banner.innerHTML =
-        `<span class="name">${esc(app.name || "Unnamed app")}</span>${ver}${desc}` +
-        `<span class="spacer"></span>` +
-        `<button id="app-banner-close" title="Close the app view and return to Playground">close</button>`;
-    banner.style.display = "flex";
-    document.getElementById("app-banner-close").addEventListener("click", () => {
-        banner.style.display = "none";
-    });
-
-    // Auto-run. Prefer native C++; fall back to the JS interpreter if the
-    // bridge is unavailable (shouldn't happen inside the desktop shell, but
-    // keeps this page usable in a plain browser).
+    // Auto-run. Prefer native C++ when the bridge is available (desktop or
+    // remote). Fall back to the JS interpreter otherwise.
     setTimeout(() => {
-        if (inTauri() && typeof runAsCompiledCpp === "function") {
+        if (hasNativeBridge() && typeof runAsCompiledCpp === "function") {
             runAsCompiledCpp();
         } else {
             run();
@@ -1259,6 +1338,163 @@ function applyPendingZeroApp() {
     }, 50);
     return true;
 }
+
+// ---------- Apps gallery (open the same catalog as the landing page) ----------
+const appsModal = document.getElementById("apps-modal");
+const appsGrid  = document.getElementById("apps-sample-grid");
+for (const app of SAMPLE_APPS) {
+    const el = document.createElement("div");
+    el.className = "sample";
+    el.innerHTML =
+        `<div class="ic">${app.icon}</div>` +
+        `<div class="nm">${app.name}</div>` +
+        `<div class="dc">${app.description}</div>` +
+        `<div class="meta"><span class="tag ${app.mode === "3d" ? "c3d" : "c2d"}">${app.mode === "3d" ? "3D" : "2D canvas"}</span></div>`;
+    el.addEventListener("click", () => {
+        appsModal.style.display = "none";
+        enterAppMode(appToPending(app));
+        setTimeout(() => {
+            if (hasNativeBridge() && typeof runAsCompiledCpp === "function") {
+                runAsCompiledCpp();
+            } else {
+                run();
+            }
+        }, 50);
+    });
+    appsGrid.appendChild(el);
+}
+function openAppsModal()  { appsModal.style.display = "flex"; }
+function closeAppsModal() { appsModal.style.display = "none"; }
+document.getElementById("btn-apps").addEventListener("click", openAppsModal);
+document.getElementById("apps-modal-close").addEventListener("click", closeAppsModal);
+appsModal.addEventListener("click", (e) => { if (e.target === appsModal) closeAppsModal(); });
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && appsModal.style.display === "flex") closeAppsModal();
+});
+// Auto-open the gallery if we arrived via a "#apps" hash from the landing.
+if (location.hash === "#apps") {
+    openAppsModal();
+    try { history.replaceState(null, "", location.pathname + location.search); } catch {}
+}
+
+// ---------- Benchmark: JS interpreter vs native C++ per-frame cost ----------
+const btnBenchmark = document.getElementById("btn-benchmark");
+const perfPanel    = document.getElementById("perf-panel");
+
+function showPerf(html) { perfPanel.innerHTML = html; perfPanel.style.display = "block"; }
+function hidePerf() { perfPanel.style.display = "none"; perfPanel.innerHTML = ""; }
+
+async function runBenchmark() {
+    if (!jspp) { alert("JSPP interpreter not loaded yet."); return; }
+    if (!hasNativeBridge()) { alert("Native C++ bridge is not available. Launch ZeroEngine Desktop to run this benchmark."); return; }
+
+    const source = editor.value;
+    const FRAMES = 300;
+    const DT = 1 / 60;
+
+    showPerf(
+        `<b>Benchmarking...</b> ` +
+        `running <b>${FRAMES}</b> frames in the JS reference interpreter and compiling + running the same program as native C++.`
+    );
+
+    // ---- JS interpreter: instantiate a headless tick loop (no canvas calls) ----
+    stopAnim();
+    let jsAvg = NaN, jsTotal = NaN, jsErr = null;
+    try {
+        const interp = new jspp.Interpreter({ onOutput: () => {} });
+        const g = interp.global;
+        // Stub all draw builtins so we measure program logic, not canvas I/O.
+        const noop = () => {};
+        g.define("clear", noop);
+        g.define("drawRect", noop);
+        g.define("drawCircle", noop);
+        g.define("drawLine", noop);
+        g.define("setRotation", noop);
+        g.define("setScale", noop);
+        g.define("setFaceColor", noop);
+        g.define("print", noop);
+        g.define("rand", () => Math.random());
+        g.define("randInt", (lo, hi) => {
+            const a = Math.floor(Number(lo) || 0);
+            const b = Math.floor(Number(hi) || 0);
+            const min = Math.min(a, b), max = Math.max(a, b);
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        });
+        const parsed = jspp.parseSource(source, "bench.jspp");
+        interp.run(parsed.ast);
+        const tickFn = g.vars.get("tick");
+        if (typeof tickFn !== "function") {
+            jsErr = "program has no tick() function, so per-frame cost cannot be measured";
+        } else {
+            // Warmup
+            for (let i = 0; i < 10; i++) tickFn(i * DT, DT);
+            const t0 = performance.now();
+            for (let i = 0; i < FRAMES; i++) tickFn(i * DT, DT);
+            jsTotal = performance.now() - t0;
+            jsAvg = jsTotal / FRAMES;
+        }
+    } catch (err) {
+        jsErr = err?.message || String(err);
+    }
+
+    // ---- Native C++: reuse compileAndRun path (which yields @F-delimited frames) ----
+    let cppRes = null, cppErr = null;
+    const tBegin = performance.now();
+    try {
+        cppRes = await compileAndRun(source, { stdin: "", opt_level: optSelect?.value || "O2" });
+    } catch (err) {
+        cppErr = err?.message || String(err);
+    }
+    const cppClientMs = performance.now() - tBegin;
+
+    let cppFrames = 0;
+    if (cppRes && cppRes.stdout) {
+        const m = cppRes.stdout.match(/(^|\n)@F\b/g);
+        cppFrames = m ? m.length : 0;
+        if (cppFrames === 0 && hasVisualProtocol(cppRes.stdout)) cppFrames = 1;
+    }
+    const cppRunMs  = cppRes?.run_ms ?? 0;
+    const cppAvg    = cppFrames > 0 ? (cppRunMs / cppFrames) : NaN;
+
+    const fmt = (ms) => Number.isFinite(ms) ? (ms >= 1 ? ms.toFixed(2) : ms.toFixed(3)) + " ms" : "—";
+    const speedup = (Number.isFinite(jsAvg) && Number.isFinite(cppAvg) && cppAvg > 0)
+        ? (jsAvg / cppAvg) : NaN;
+
+    const jsRow = jsErr
+        ? `<span style="color:#fecaca;">JS interp: error — ${jsErr}</span>`
+        : `<b>JS interpreter</b>: ${fmt(jsAvg)} / frame · ${FRAMES} frames in ${fmt(jsTotal)}`;
+    const cppRow = cppErr
+        ? `<span style="color:#fecaca;">Native C++: bridge error — ${cppErr}</span>`
+        : (cppRes?.ok
+            ? `<b>Native C++</b>: ${fmt(cppAvg)} / frame · ${cppFrames} frames in ${cppRunMs} ms ` +
+              `<span style="color:var(--muted);">(build: jspp ${cppRes.jspp_ms} ms + c++ ${cppRes.cxx_ms} ms = ${Math.round(cppClientMs)} ms round-trip)</span>`
+            : `<span style="color:#fecaca;">Native C++: failed at ${cppRes?.stage_failed || "?"}</span>`);
+    const verdict = Number.isFinite(speedup)
+        ? `<b style="color:var(--ok);">${speedup.toFixed(1)}x</b> — C++ is ${speedup.toFixed(1)}x faster per frame than the JS interpreter on this program.`
+        : `<span style="color:var(--muted);">Not enough data for a ratio.</span>`;
+
+    showPerf(
+        `<div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">` +
+        `<b>Per-frame cost</b>` +
+        `<span style="flex:1;"></span>` +
+        `<button id="perf-close" class="btn" style="padding:2px 8px; font-size:11px;">close</button>` +
+        `</div>` +
+        `<div>${jsRow}</div>` +
+        `<div>${cppRow}</div>` +
+        `<div style="margin-top:6px;">${verdict}</div>`
+    );
+    document.getElementById("perf-close").addEventListener("click", hidePerf);
+}
+if (btnBenchmark) btnBenchmark.addEventListener("click", runBenchmark);
+// Benchmark requires the native bridge; enable it the same moment as C++ (dev).
+function updateBenchmarkEnabled() {
+    if (!btnBenchmark) return;
+    btnBenchmark.disabled = !hasNativeBridge();
+}
+updateBenchmarkEnabled();
+// Re-check after a tick in case remote-bridge detection finishes after load.
+setTimeout(updateBenchmarkEnabled, 1200);
+setTimeout(updateBenchmarkEnabled, 4000);
 
 if (!applyPendingZeroApp()) {
     loadScene("hello");
