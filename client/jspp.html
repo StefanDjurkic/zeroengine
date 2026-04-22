@@ -849,6 +849,13 @@ function renderCppModal() {
     cppModalBody.scrollTop = 0;
 }
 
+// Detect whether stdout contains the visual line protocol (with or without
+// per-frame @F markers). Single-frame demos (e.g. hello) emit only @C/@O/@L.
+function hasVisualProtocol(s) {
+    if (!s) return false;
+    return /(^|\n)@[CROLSZKFE]\b/.test(s);
+}
+
 async function runAsCompiledCpp() {
     if (!hasNativeBridge()) return;
 
@@ -864,7 +871,7 @@ async function runAsCompiledCpp() {
         lastCompile = { cpp: cached.cpp, stdout: cached.stdout, stderr: cached.stderr, ok: true };
         cppTiming.textContent = "[CACHED] jspp:" + cached.jspp_ms + "ms · c++:" + cached.cxx_ms + "ms · run:" + cached.run_ms + "ms";
         renderCppModal();
-        if (cached.stdout.indexOf("@F ") !== -1) {
+        if (hasVisualProtocol(cached.stdout)) {
             cppModal.style.display = "none";
             playNativeFrames(cached.stdout, cached.total_ms, /*cached*/ true);
         } else {
@@ -963,7 +970,7 @@ async function runAsCompiledCpp() {
     // and replay them on the canvas. This is the "C++ actually drives the
     // canvas" path: the stream came from a freshly compiled .exe you just
     // ran, not from the JS interpreter.
-    if (res.ok && lastCompile.stdout && lastCompile.stdout.indexOf("@F ") !== -1) {
+    if (res.ok && hasVisualProtocol(lastCompile.stdout)) {
         cppModal.style.display = "none";
         playNativeFrames(lastCompile.stdout, total);
     }
@@ -980,10 +987,12 @@ function playNativeFrames(stdout, compileMs, cached) {
     const userPrints = [];
     let cur = null;
     let sawEnd = false;
+    let sawFrameMarker = false;
     for (const line of lines) {
         if (!line) continue;
         if (line[0] !== "@") { userPrints.push(line); continue; }
         if (line.startsWith("@F ")) {
+            sawFrameMarker = true;
             if (cur) frames.push(cur);
             cur = [];
             continue;
@@ -996,6 +1005,15 @@ function playNativeFrames(stdout, compileMs, cached) {
     // (stdout was truncated mid-frame or runtime was killed by timeout).
     // Drop it to keep replay clean.
     if (cur && sawEnd) frames.push(cur);
+    // Single-frame (static) output: no @F markers at all. Collect the whole
+    // op stream into one frame so the canvas actually draws it.
+    if (!sawFrameMarker && cur && cur.length) frames.push(cur);
+    // Nothing usable → bail out and let the modal show raw stdout.
+    if (frames.length === 0) {
+        for (const p of userPrints) appendOut(p);
+        appendOut("(no drawable frames in stdout)", "info");
+        return;
+    }
 
     for (const p of userPrints) appendOut(p);
 

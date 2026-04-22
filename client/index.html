@@ -109,6 +109,7 @@
         <p class="line">JSPP also has a real <b>C++20 compiler</b>. Install <b>ZeroEngine Desktop</b> and the <a href="./jspp.html" style="color:var(--accent)">playground</a>'s <code>Run as compiled C++</code> button will send whatever you type through the JSPP compiler, build the resulting C++ with your local toolchain, and execute the native binary - all without leaving the app. Without the desktop install, the playground still runs JSPP in-browser via the JS reference interpreter.</p>
         <div class="btns">
             <a class="btn primary" href="./jspp.html">Open JSPP Playground</a>
+            <a id="apps-btn" class="btn" href="./jspp.html#apps" style="opacity:.45;pointer-events:none;" title="Requires ZeroEngine Desktop running locally">Sample Apps (native C++)</a>
             <a class="btn" href="https://github.com/StefanDjurkic/zeroengine/releases/latest" target="_blank" rel="noopener">Download ZeroEngine Desktop</a>
             <a class="btn" href="https://github.com/StefanDjurkic/jspp" target="_blank" rel="noopener">JSPP repo</a>
             <a class="btn" href="https://github.com/StefanDjurkic/zeroengine" target="_blank" rel="noopener">ZeroEngine repo</a>
@@ -137,6 +138,13 @@
                     'Click <a href="./jspp.html" style="color:#22d3ee;">Open Playground</a> and hit ' +
                     '<kbd style="background:#0b0f17;border:1px solid #2a3347;padding:1px 5px;border-radius:4px;">Ctrl+Shift+Enter</kbd> ' +
                     'to compile and run native C++.';
+                // Un-grey the Sample Apps button.
+                var ab = document.getElementById("apps-btn");
+                if (ab) {
+                    ab.style.opacity = "1";
+                    ab.style.pointerEvents = "auto";
+                    ab.title = "Browse the built-in sample apps (native C++ via local bridge)";
+                }
             } else {
                 throw new Error("missing toolchain");
             }
