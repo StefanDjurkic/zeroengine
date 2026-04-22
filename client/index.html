@@ -71,6 +71,12 @@ body {
     display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden;
 }
 .tile:hover { transform: translateY(-2px); border-color: var(--accent); }
+/* Tiles that don't actually work in the current mode (e.g. bridge/apps on the
+   public website, where there is no local ZeroEngine process to talk to) go
+   into .inactive: dimmed, no hover lift, default cursor. Clicking still
+   fires the handler so we can show a short explainer popup. */
+.tile.inactive { opacity:.55; cursor:default; filter:grayscale(.25); }
+.tile.inactive:hover { transform:none; border-color:var(--stroke); }
 .tile .icon { font-size:28px; line-height:1; }
 .tile h3 { margin:0; font-size:16px; }
 .tile p { margin:0; color:var(--muted); font-size:13px; line-height:1.5; }
@@ -235,22 +241,26 @@ const IS_DESKTOP = !!invoke;
 const BRIDGE_HTTP = "http://127.0.0.1:17849";
 
 if (!IS_DESKTOP) {
-    // Running as the public website. Retitle and tweak copy, disable the URL
-    // bar (we can't spawn new webview windows), hide desktop-only actions.
+    // Running as the public website. Retitle and tweak copy, hide the URL
+    // bar and Browser tile entirely (we can't spawn new webview windows, and
+    // the old disabled-input version looked broken when users typed a URL
+    // and nothing happened). Bridge + Apps tiles start visually "inactive"
+    // and light up the moment refreshBridge() finds a running desktop.
     document.querySelector(".hero p").textContent =
         "Write JSPP, see it drawn live on a 2D canvas or driving a Three.js cube. Launch the ZeroEngine desktop app to turn on the local compile bridge and run your JSPP as real native C++.";
-    const addr  = document.getElementById("addr");
-    const addrBtns = document.querySelectorAll("#addr-form .btn, #btn-system");
-    if (addr) { addr.placeholder = "URL bar is desktop-only. Download ZeroEngine to open URLs in a new window."; addr.disabled = true; }
-    addrBtns.forEach(b => b.disabled = true);
+    const addrForm = document.getElementById("addr-form");
+    if (addrForm) addrForm.style.display = "none";
+    const browserTile = document.getElementById("tile-browser");
+    if (browserTile) browserTile.style.display = "none";
     const loadBtn = document.getElementById("btn-load-from-disk");
     if (loadBtn) loadBtn.style.display = "none";
-    // Browser tile: in web mode, offer to open in a new tab instead.
-    const browserTile = document.getElementById("tile-browser");
-    if (browserTile) {
-        browserTile.querySelector("p").textContent =
-            "Open any URL in a new tab. In the desktop app this opens a real ZeroEngine webview window that can talk to the local bridge.";
-    }
+    // Pre-mark bridge + apps as inactive until proven otherwise.
+    const bridgeTile = document.getElementById("tile-bridge");
+    const appsTile   = document.getElementById("tile-apps");
+    if (bridgeTile) bridgeTile.classList.add("inactive");
+    if (appsTile)   appsTile.classList.add("inactive");
+    const chipApps = document.getElementById("chip-apps");
+    if (chipApps) { chipApps.textContent = "desktop only"; chipApps.className = "chip warn"; }
     // Brand subtitle: mark as web build.
     const sub = document.querySelector(".brand .sub");
     if (sub) sub.textContent = "web build";
@@ -357,10 +367,28 @@ async function refreshBridge() {
             msgEl.textContent = "JSPP OK, but no C++ compiler on PATH. Install g++/clang++/MSVC to enable native runs.";
             chipEl.textContent = "no compiler"; chipEl.className = "chip warn";
         }
+        // On the public website, a reachable /info means the desktop app is
+        // running locally - light up the bridge and apps tiles.
+        if (!IS_DESKTOP) {
+            const bridgeTile = document.getElementById("tile-bridge");
+            const appsTile   = document.getElementById("tile-apps");
+            if (bridgeTile) bridgeTile.classList.remove("inactive");
+            if (appsTile)   appsTile.classList.remove("inactive");
+            const chipApps = document.getElementById("chip-apps");
+            if (chipApps) { chipApps.textContent = SAMPLE_APPS.length + " samples"; chipApps.className = "chip ok"; }
+        }
     } catch (err) {
         if (!IS_DESKTOP) {
             msgEl.innerHTML = "No local engine detected. Download the <b>ZeroEngine desktop app</b> and launch it \u2014 this page will light up and JSPP will run as real native C++.";
             chipEl.textContent = "engine offline"; chipEl.className = "chip warn";
+            // Drop tiles back into the inactive look so visitors can see at
+            // a glance that these features need the desktop app.
+            const bridgeTile = document.getElementById("tile-bridge");
+            const appsTile   = document.getElementById("tile-apps");
+            if (bridgeTile) bridgeTile.classList.add("inactive");
+            if (appsTile)   appsTile.classList.add("inactive");
+            const chipApps = document.getElementById("chip-apps");
+            if (chipApps) { chipApps.textContent = "desktop only"; chipApps.className = "chip warn"; }
         } else {
             msgEl.textContent = "bridge_info failed: " + (err?.message || err);
             chipEl.textContent = "error"; chipEl.className = "chip err";
@@ -395,7 +423,16 @@ for (const app of SAMPLE_APPS) {
     sampleGrid.appendChild(el);
 }
 
-function openAppsModal() { appsModal.classList.add("open"); }
+function openAppsModal() {
+    // When the tile is inactive (public website with no running desktop),
+    // clicking it should explain what to do instead of opening the gallery.
+    const appsTile = document.getElementById("tile-apps");
+    if (appsTile && appsTile.classList.contains("inactive")) {
+        alert("Sample apps compile to native C++ through the local ZeroEngine bridge. Launch the ZeroEngine desktop app (or download it from GitHub) and this tile will light up.");
+        return;
+    }
+    appsModal.classList.add("open");
+}
 function closeAppsModal() { appsModal.classList.remove("open"); }
 document.getElementById("tile-apps").addEventListener("click", openAppsModal);
 document.getElementById("apps-close").addEventListener("click", closeAppsModal);
