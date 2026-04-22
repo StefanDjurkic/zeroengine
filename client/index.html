@@ -261,27 +261,67 @@ cube.add(new THREE.LineSegments(
     new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28 })
 ));
 
-const jspp = await import("./prototype/jspp.mjs");
-const interp = new jspp.Interpreter({ onOutput: (line) => console.log("[jspp]", line) });
-const g = interp.global;
-g.define("setRotation", (x, y) => { cube.rotation.x = Number(x) || 0; cube.rotation.y = Number(y) || 0; });
-g.define("setScale",    (s)    => { cube.scale.setScalar(Number(s) || 1); });
-g.define("setFaceColor",(idx, r, gc, b) => {
-    const m = faceMats[(idx | 0) % 6];
-    if (m) m.color.setRGB((Number(r) || 0) / 255, (Number(gc) || 0) / 255, (Number(b) || 0) / 255);
-});
-g.define("log", (...args) => console.log("[jspp]", ...args));
+// The JSPP reference interpreter is shipped on the Pages build (copied from
+// the jspp repo) but NOT inside the Tauri desktop bundle, since the desktop
+// app has the real native compiler. If the dynamic import fails, fall back
+// to a tasteful built-in animation so the cube is still alive.
+let jspp = null;
+try {
+    jspp = await import("./prototype/jspp.mjs");
+} catch (err) {
+    console.warn("JSPP interpreter not available on this build:", err);
+}
 
 let jsppTick = null;
 let jsppOnClick = null;
-try {
-    const parsed = jspp.parseSource(jsppSource, "scene.jspp");
-    interp.run(parsed.ast);
-    jsppTick = g.vars.get("tick");
-    jsppOnClick = g.vars.get("onClick");
-} catch (err) {
-    console.error("JSPP boot failed:", err);
-    bootEl.textContent = "JSPP boot failed: " + (err.message || err);
+
+if (jspp) {
+    const interp = new jspp.Interpreter({ onOutput: (line) => console.log("[jspp]", line) });
+    const g = interp.global;
+    g.define("setRotation", (x, y) => { cube.rotation.x = Number(x) || 0; cube.rotation.y = Number(y) || 0; });
+    g.define("setScale",    (s)    => { cube.scale.setScalar(Number(s) || 1); });
+    g.define("setFaceColor",(idx, r, gc, b) => {
+        const m = faceMats[(idx | 0) % 6];
+        if (m) m.color.setRGB((Number(r) || 0) / 255, (Number(gc) || 0) / 255, (Number(b) || 0) / 255);
+    });
+    g.define("log", (...args) => console.log("[jspp]", ...args));
+
+    try {
+        const parsed = jspp.parseSource(jsppSource, "scene.jspp");
+        interp.run(parsed.ast);
+        jsppTick = g.vars.get("tick");
+        jsppOnClick = g.vars.get("onClick");
+    } catch (err) {
+        console.error("JSPP boot failed:", err);
+        bootEl.textContent = "JSPP boot failed: " + (err.message || err);
+    }
+} else {
+    // Desktop build / offline fallback: seed the palette + a simple tick so the
+    // visitor still sees the exact same animated cube.
+    const fallbackPalette = [
+        [255, 107, 107], [ 78, 205, 196], [255, 230, 109],
+        [ 84, 160, 255], [255, 138, 221], [162, 140, 255],
+    ];
+    for (let i = 0; i < 6; i++) {
+        const c = fallbackPalette[i];
+        faceMats[i].color.setRGB(c[0] / 255, c[1] / 255, c[2] / 255);
+    }
+    let rx = 0, ry = 0, pulse = 0;
+    jsppTick = (t, dt) => {
+        rx += 0.006; ry += 0.009;
+        if (pulse > 0) { pulse -= dt * 2.5; if (pulse < 0) pulse = 0; }
+        cube.rotation.x = rx; cube.rotation.y = ry;
+        cube.scale.setScalar(1 + pulse * 0.25);
+    };
+    jsppOnClick = () => {
+        pulse = 1;
+        const first = fallbackPalette.shift();
+        fallbackPalette.push(first);
+        for (let i = 0; i < 6; i++) {
+            const c = fallbackPalette[i];
+            faceMats[i].color.setRGB(c[0] / 255, c[1] / 255, c[2] / 255);
+        }
+    };
 }
 
 let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0;
