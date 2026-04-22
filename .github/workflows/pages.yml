@@ -64,6 +64,7 @@ jobs:
               client/jspp.html > _site/jspp.html
           cp client/jspp_engine_bridge.mjs _site/
           cp client/node-shims.mjs        _site/
+          cp client/sample_apps.mjs       _site/
           cp _jspp/prototype/jspp.mjs         _site/prototype/
           cp _jspp/prototype/typechecker.mjs  _site/prototype/
           cp -r client/pkg/*              _site/pkg/
