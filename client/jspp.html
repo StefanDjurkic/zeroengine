@@ -1448,30 +1448,53 @@ async function runBenchmark() {
     const cppClientMs = performance.now() - tBegin;
 
     let cppFrames = 0;
+    let cppStdoutBytes = 0;
     if (cppRes && cppRes.stdout) {
         const m = cppRes.stdout.match(/(^|\n)@F\b/g);
         cppFrames = m ? m.length : 0;
         if (cppFrames === 0 && hasVisualProtocol(cppRes.stdout)) cppFrames = 1;
+        cppStdoutBytes = cppRes.stdout.length;
     }
     const cppRunMs  = cppRes?.run_ms ?? 0;
     const cppAvg    = cppFrames > 0 ? (cppRunMs / cppFrames) : NaN;
 
     const fmt = (ms) => Number.isFinite(ms) ? (ms >= 1 ? ms.toFixed(2) : ms.toFixed(3)) + " ms" : "—";
-    const speedup = (Number.isFinite(jsAvg) && Number.isFinite(cppAvg) && cppAvg > 0)
+    const ratio = (Number.isFinite(jsAvg) && Number.isFinite(cppAvg) && cppAvg > 0)
         ? (jsAvg / cppAvg) : NaN;
 
     const jsRow = jsErr
         ? `<span style="color:#fecaca;">JS interp: error — ${jsErr}</span>`
-        : `<b>JS interpreter</b>: ${fmt(jsAvg)} / frame · ${FRAMES} frames in ${fmt(jsTotal)}`;
+        : `<b>JS interpreter</b> <span style="color:var(--muted);">(tick() only, noop draws)</span>: ${fmt(jsAvg)} / frame · ${FRAMES} frames in ${fmt(jsTotal)}`;
+    const kb = (cppStdoutBytes / 1024).toFixed(0);
     const cppRow = cppErr
         ? `<span style="color:#fecaca;">Native C++: bridge error — ${cppErr}</span>`
         : (cppRes?.ok
-            ? `<b>Native C++</b>: ${fmt(cppAvg)} / frame · ${cppFrames} frames in ${cppRunMs} ms ` +
+            ? `<b>Native C++</b> <span style="color:var(--muted);">(tick() + stdout serialization, ${kb} KB)</span>: ${fmt(cppAvg)} / frame · ${cppFrames} frames in ${cppRunMs} ms ` +
               `<span style="color:var(--muted);">(build: jspp ${cppRes.jspp_ms} ms + c++ ${cppRes.cxx_ms} ms = ${Math.round(cppClientMs)} ms round-trip)</span>`
             : `<span style="color:#fecaca;">Native C++: failed at ${cppRes?.stage_failed || "?"}</span>`);
-    const verdict = Number.isFinite(speedup)
-        ? `<b style="color:var(--ok);">${speedup.toFixed(1)}x</b> — C++ is ${speedup.toFixed(1)}x faster per frame than the JS interpreter on this program.`
-        : `<span style="color:var(--muted);">Not enough data for a ratio.</span>`;
+
+    // Compute a correctly-labeled verdict. ratio = jsAvg / cppAvg:
+    //   ratio > 1  → C++ is ratio× faster than the interpreter
+    //   ratio < 1  → C++ is slower (by 1/ratio×) on this workload, usually
+    //               because C++'s run_ms is dominated by stdout serialization
+    //               of the visual protocol while the JS side runs noop draws.
+    let verdict;
+    if (!Number.isFinite(ratio)) {
+        verdict = `<span style="color:var(--muted);">Not enough data for a ratio.</span>`;
+    } else if (ratio >= 1) {
+        verdict = `<b style="color:var(--ok);">${ratio.toFixed(1)}×</b> — native C++ is <b>${ratio.toFixed(1)}× faster</b> per frame than the JS interpreter on this program.`;
+    } else {
+        const inv = 1 / ratio;
+        verdict = `<b style="color:var(--warn);">${inv.toFixed(1)}× slower</b> — on this program, the native run looks slower per frame than the JS interpreter.`;
+    }
+    // Methodology footnote: always show so the numbers aren't misleading.
+    const note =
+        `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--stroke); color:var(--muted); font-size:11px; line-height:1.5; white-space:normal; font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;">` +
+        `<b>Note:</b> the JS side times <code>tick()</code> with <i>no-op</i> draw builtins (pure language perf). ` +
+        `The C++ side's <code>run ms</code> includes <b>serializing every draw call to stdout</b> over the <code>@C/@R/@O/…</code> visual protocol — that's how frames get back to this canvas. ` +
+        `For tick bodies that do little per frame (pendulum, cube), stdout I/O dominates and the native run looks slower even though the actual math is way faster. ` +
+        `Try the <b>Particle Field</b> sample (400 particles) for a workload where the compute beats the I/O and C++ pulls ahead cleanly.` +
+        `</div>`;
 
     showPerf(
         `<div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">` +
@@ -1481,7 +1504,8 @@ async function runBenchmark() {
         `</div>` +
         `<div>${jsRow}</div>` +
         `<div>${cppRow}</div>` +
-        `<div style="margin-top:6px;">${verdict}</div>`
+        `<div style="margin-top:6px;">${verdict}</div>` +
+        note
     );
     document.getElementById("perf-close").addEventListener("click", hidePerf);
 }
