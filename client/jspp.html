@@ -28,7 +28,43 @@ canvas { background:#0e131f; border:1px solid var(--stroke); border-radius:8px;
 #back { position:absolute; top:12px; right:12px; font-size:12px; color:var(--text);
     text-decoration:none; background:var(--panel); border:1px solid var(--stroke);
     padding:6px 12px; border-radius:8px; }
+#remote-bridge-badge {
+    position:absolute; top:12px; right:80px;
+    font-family: 'Fira Code', Consolas, Monaco, monospace;
+    font-size:11px; padding:6px 10px; border-radius:999px;
+    color:#bbf7d0; background:rgba(6,28,18,.85); border:1px solid #065f46;
+    letter-spacing:.03em; user-select:none;
+}
+#native-badge { position:absolute; bottom:12px; left:12px; font-size:11px;
+    color:#bbf7d0; background:rgba(6,28,18,.85); padding:6px 10px; border-radius:999px;
+    border:1px solid #065f46; letter-spacing:.03em; display:none;
+    font-family: 'Fira Code', Consolas, Monaco, monospace; user-select:none; cursor:pointer; }
+#native-badge .pulse { display:inline-block; width:7px; height:7px; border-radius:50%;
+    background:#34d399; box-shadow:0 0 8px #34d399; margin-right:6px; vertical-align:middle;
+    animation: nb-pulse 1.4s ease-in-out infinite; }
+@keyframes nb-pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+#native-badge.paused .pulse { animation:none; background:#9ca3af; box-shadow:none; }
 #back:hover { border-color: var(--accent); }
+
+/* ---- .zeroapp banner: shown at top of the view when a bundle is loaded ---- */
+#app-banner {
+    position:absolute; top:12px; left:12px; right:180px;
+    background:linear-gradient(135deg, rgba(34,211,238,.12), rgba(167,139,250,.12));
+    border:1px solid rgba(34,211,238,.35); color:#e0f7fa;
+    padding:8px 14px; border-radius:10px; font-size:12px; z-index:5;
+    backdrop-filter: blur(6px);
+    display:flex; align-items:center; gap:10px;
+}
+#app-banner .name { font-weight:700; color:#fff; }
+#app-banner .ver  { color:#a5f3fc; font-family:'Fira Code',Consolas,monospace; font-size:11px; }
+#app-banner .desc { color:#cbd5e1; font-size:11px; }
+#app-banner .spacer { flex:1; }
+#app-banner button {
+    background:transparent; border:1px solid rgba(255,255,255,.2); color:#e0f7fa;
+    padding:3px 8px; border-radius:6px; font-size:11px; cursor:pointer;
+    font-family:inherit;
+}
+#app-banner button:hover { border-color:var(--accent); }
 
 .side { display:flex; flex-direction:column; border-left:1px solid var(--stroke);
     background:var(--bg-1); min-width:0; }
@@ -80,8 +116,11 @@ textarea#editor { flex:1 1 auto; min-height:160px;
 <div class="view">
     <span id="view-badge"><span class="dot"></span><span id="mode-label">JSPP to Canvas2D</span></span>
     <a id="back" href="./">back</a>
+    <span id="remote-bridge-badge" style="display:none;" title="The page is connected to a local ZeroEngine Desktop running on this machine. Compile requests go through http://127.0.0.1:17849.">[bridge] desktop</span>
+    <div id="app-banner" style="display:none;"></div>
     <canvas id="canvas2d" width="640" height="520"></canvas>
     <canvas id="canvas3d" width="640" height="520"></canvas>
+    <div id="native-badge" title="This animation is a replay of a real native C++ binary's stdout. Click to pause/resume."><span class="pulse"></span><span id="native-badge-text">native C++</span></div>
 </div>
 
 <div class="side">
@@ -98,6 +137,7 @@ textarea#editor { flex:1 1 auto; min-height:160px;
         <button class="pill" data-scene="functions">functions</button>
         <button class="pill" data-scene="classes">classes</button>
         <button class="pill" data-scene="bouncing">bouncing</button>
+        <button class="pill" data-scene="particles">particles</button>
         <button class="pill" data-scene="cube3d">3D cube</button>
     </div>
 
@@ -106,12 +146,12 @@ textarea#editor { flex:1 1 auto; min-height:160px;
         <div class="toolbar">
             <button id="btn-run" class="btn primary" title="Ctrl+Enter">Run</button>
             <button id="btn-reset" class="btn">Reset</button>
-            <button id="btn-open" class="btn" title="Open a .jspp file from disk (desktop only)">Open</button>
-            <button id="btn-save" class="btn" title="Save current editor source to disk (desktop only)">Save</button>
-            <button id="btn-compile-cpp" class="btn" disabled title="Install ZeroEngine Desktop to compile this JSPP as real C++ and run the native binary. In a plain browser we can only interpret it.">Run as compiled C++</button>
-            <button id="btn-cpp-settings" class="btn" disabled title="Compile settings (desktop only)">⚙</button>
+            <button id="btn-open" class="btn" disabled title="Open a .jspp file from disk (desktop only)">Open</button>
+            <button id="btn-save" class="btn" disabled title="Save current editor source to disk (desktop only)">Save</button>
+            <button id="btn-compile-cpp" class="btn" disabled title="Dev tool: compile this JSPP through the real C++ compiler and show the output text. Requires ZeroEngine Desktop." style="font-size:12px; opacity:.75">C++ (dev)</button>
+            <button id="btn-cpp-settings" class="btn" disabled title="Compile settings (desktop only)" style="font-size:12px; opacity:.75">⚙</button>
             <span class="spacer"></span>
-            <span class="hint">Ctrl+Enter to run</span>
+            <span class="hint">Ctrl+Enter run · Ctrl+Shift+Enter C++</span>
         </div>
         <div id="cpp-settings" style="display:none; margin:0 8px 8px; padding:10px 12px; background:var(--bg-1, #121826); border:1px solid var(--stroke, #2a3347); border-radius:10px; font-size:12px;">
             <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
@@ -153,6 +193,8 @@ textarea#editor { flex:1 1 auto; min-height:160px;
             <button class="pill cpp-tab active" data-ctab="stdout">stdout</button>
             <button class="pill cpp-tab" data-ctab="cpp">generated.cpp</button>
             <span style="flex:1;"></span>
+            <button id="cpp-copy" class="btn" style="padding:4px 10px; font-size:11px;" title="Copy the current view to clipboard">Copy</button>
+            <button id="cpp-save" class="btn" style="padding:4px 10px; font-size:11px;" title="Save generated.cpp to disk (desktop only)">Save .cpp</button>
             <span id="cpp-timing" style="font-size:11px; color:var(--muted); align-self:center;"></span>
         </div>
         <pre id="cpp-modal-body" style="margin:0; padding:16px 18px; flex:1; overflow:auto; font-family:'Fira Code', Consolas, Monaco, monospace; font-size:12px; line-height:1.5; color:#d6deeb; background:#080c16; white-space:pre; tab-size:4;"></pre>
@@ -334,6 +376,41 @@ function tick(t) {
 }
 `,
 
+particles:
+`// particles.jspp - 400 springy particles, Math.sin/cos driven.
+// Heavier loop than 'bouncing' - compile with C++ (dev) and watch the
+// native binary chew through 400 circles per frame at full rate.
+
+let N = 400;
+let ps = [];
+for (let i = 0; i < N; i = i + 1) {
+    ps.push({
+        r:  80 + rand() * 220,
+        a:  rand() * 6.28,
+        sp: 0.2 + rand() * 1.4,
+        ph: rand() * 6.28,
+        rad: 2 + rand() * 3.5,
+        cr: randInt(120, 255),
+        cg: randInt(120, 255),
+        cb: randInt(120, 255)
+    });
+}
+
+function tick(t) {
+    clear(6, 9, 18);
+    for (let i = 0; i < N; i = i + 1) {
+        let p = ps[i];
+        let a = p.a + t * p.sp;
+        let pulse = 1.0 + Math.sin(t * 2.0 + p.ph) * 0.25;
+        let x = 320 + Math.cos(a) * p.r * pulse;
+        let y = 260 + Math.sin(a) * p.r * pulse;
+        drawCircle(x, y, p.rad, p.cr, p.cg, p.cb);
+    }
+}
+
+print("particles armed:", N);
+`,
+
 cube3d:
 `// cube3d.jspp - 3D mode. JSPP drives a real Three.js cube.
 // Builtins in 3D mode:
@@ -457,7 +534,7 @@ function appendOut(text, cls) {
 // ---------- JSPP interpreter ----------
 let jspp = null;
 try {
-    jspp = await import("./prototype/jspp.mjs");
+    jspp = await import("./jspp_interp.js");
     appendOut("JSPP interpreter ready.", "info");
 } catch (err) {
     console.error(err);
@@ -468,9 +545,13 @@ try {
 let currentMode = "2d";
 let currentScene = "hello";
 let animHandle = null;
+let nativePaused = false;
 
 function stopAnim() {
     if (animHandle !== null) { cancelAnimationFrame(animHandle); animHandle = null; }
+    const nb = document.getElementById("native-badge");
+    if (nb) { nb.style.display = "none"; nb.classList.remove("paused"); }
+    nativePaused = false;
 }
 
 function setMode(mode) {
@@ -582,7 +663,11 @@ pills.forEach(p => p.addEventListener("click", () => loadScene(p.dataset.scene))
 btnRun.addEventListener("click", run);
 btnReset.addEventListener("click", () => loadScene(currentScene));
 editor.addEventListener("keydown", (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); run(); }
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (e.shiftKey && hasNativeBridge()) { runAsCompiledCpp(); } else { run(); }
+        return;
+    }
     if (e.key === "Tab") {
         e.preventDefault();
         const s = editor.selectionStart, en = editor.selectionEnd;
@@ -609,15 +694,124 @@ const cppTabs       = [...document.querySelectorAll(".cpp-tab")];
 let lastCompile = { cpp: "", stdout: "", stderr: "", ok: false };
 let cppCurrentTab = "stdout";
 
+// Small LRU cache of successful compiles keyed by source+opts+stdin so a
+// repeat click on the same program replays instantly — no g++ round-trip.
+const compileCache = (() => {
+    const MAX = 8;
+    const m = new Map();
+    return {
+        get(k) {
+            if (!m.has(k)) return undefined;
+            const v = m.get(k);
+            m.delete(k); m.set(k, v);   // bump to most-recent
+            return v;
+        },
+        set(k, v) {
+            if (m.has(k)) m.delete(k);
+            m.set(k, v);
+            while (m.size > MAX) m.delete(m.keys().next().value);
+        }
+    };
+})();
+
 function inTauri() {
     return typeof window !== "undefined" && !!window.__TAURI__ && !!window.__TAURI__.core;
 }
 
+// ---------- Remote C++ bridge (for web builds) ----------
+// When the page is served from the web (GitHub Pages, file://, a dev
+// server, etc.) we try to reach a running ZeroEngine Desktop on
+// http://127.0.0.1:17849. If it answers /info with both tools present,
+// the "C++ (dev)" path uses it via HTTP and the user gets native
+// compiles from a plain browser.
+const REMOTE_BRIDGE_PORT = 17849;
+const REMOTE_BRIDGE_URL  = "http://127.0.0.1:" + REMOTE_BRIDGE_PORT;
+let remoteBridge = {
+    url: null,      // set to base URL if detected
+    info: null,     // last /info response
+    checked: false,
+};
+
+async function detectRemoteBridge() {
+    if (inTauri()) return false;
+    try {
+        const r = await fetch(REMOTE_BRIDGE_URL + "/info", {
+            method: "GET",
+            cache: "no-store",
+            mode: "cors",
+        });
+        if (!r.ok) return false;
+        const info = await r.json();
+        remoteBridge.url = REMOTE_BRIDGE_URL;
+        remoteBridge.info = info;
+        return !!(info.has_jspp && info.has_cxx);
+    } catch {
+        return false;
+    } finally {
+        remoteBridge.checked = true;
+    }
+}
+
+function hasNativeBridge() {
+    return inTauri() || !!remoteBridge.url;
+}
+
+// Adapter: run the JSPP->C++->exe pipeline via whichever bridge is
+// available. Returns the same shape as the Tauri `compile_and_run`
+// command. Throws on transport-level failures; normal JSPP/C++
+// errors come back as `{ ok: false, stage_failed, stderr }`.
+async function compileAndRun(source, options) {
+    if (inTauri()) {
+        const { invoke } = window.__TAURI__.core;
+        return await invoke("compile_and_run", { source, options });
+    }
+    if (!remoteBridge.url) {
+        throw new Error("No ZeroEngine bridge reachable. Launch ZeroEngine Desktop on this machine to enable native C++ compiles.");
+    }
+    const r = await fetch(remoteBridge.url + "/compile", {
+        method: "POST",
+        mode: "cors",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source, options }),
+    });
+    if (!r.ok) {
+        let msg = "bridge HTTP " + r.status;
+        try {
+            const j = await r.json();
+            if (j?.error) msg += ": " + j.error;
+            if (j?.hint)  msg += "\n" + j.hint;
+        } catch {}
+        throw new Error(msg);
+    }
+    return await r.json();
+}
+
 if (inTauri()) {
     btnCompileCpp.disabled = false;
-    btnCompileCpp.title = "Compile this JSPP to C++ and run the native binary via ZeroEngine";
+    btnCompileCpp.title = "Compile this JSPP through the real C++ compiler and show stdout (dev tool, text only).";
     const btnSettings = document.getElementById("btn-cpp-settings");
     if (btnSettings) btnSettings.disabled = false;
+    const btnOpenEl = document.getElementById("btn-open");
+    const btnSaveEl = document.getElementById("btn-save");
+    if (btnOpenEl) btnOpenEl.disabled = false;
+    if (btnSaveEl) btnSaveEl.disabled = false;
+} else {
+    // Web build: probe for a running ZeroEngine Desktop on this machine
+    // and, if found with both tools, enable the native C++ path over HTTP.
+    detectRemoteBridge().then((ok) => {
+        if (!ok) return;
+        btnCompileCpp.disabled = false;
+        const kind = remoteBridge.info?.cxx_kind || "native";
+        btnCompileCpp.title = "Compile via local ZeroEngine Desktop bridge (" + kind + " on 127.0.0.1:" + REMOTE_BRIDGE_PORT + ")";
+        const hint = document.getElementById("kbd-hint");
+        if (hint) hint.textContent = "Ctrl+Enter run · Ctrl+Shift+Enter C++ (via desktop bridge)";
+        const badge = document.getElementById("remote-bridge-badge");
+        if (badge) {
+            badge.textContent = "[bridge] desktop · " + kind;
+            badge.style.display = "inline-block";
+        }
+    });
 }
 
 const settingsPanel = document.getElementById("cpp-settings");
@@ -656,9 +850,31 @@ function renderCppModal() {
 }
 
 async function runAsCompiledCpp() {
-    if (!inTauri()) return;
-    const { invoke } = window.__TAURI__.core;
-    cppModeBadge.textContent = "- local native";
+    if (!hasNativeBridge()) return;
+
+    const source = editor.value;
+    const optLevel = optSelect?.value || "O2";
+    const stdinText = stdinInput?.value || "";
+    const cacheKey = optLevel + "\0" + stdinText + "\0" + source;
+
+    // Repeat clicks on the same source → serve from the in-memory cache,
+    // replay immediately, skip the whole toolchain round-trip.
+    const cached = compileCache.get(cacheKey);
+    if (cached) {
+        lastCompile = { cpp: cached.cpp, stdout: cached.stdout, stderr: cached.stderr, ok: true };
+        cppTiming.textContent = "[CACHED] jspp:" + cached.jspp_ms + "ms · c++:" + cached.cxx_ms + "ms · run:" + cached.run_ms + "ms";
+        renderCppModal();
+        if (cached.stdout.indexOf("@F ") !== -1) {
+            cppModal.style.display = "none";
+            playNativeFrames(cached.stdout, cached.total_ms, /*cached*/ true);
+        } else {
+            cppModal.style.display = "flex";
+        }
+        return;
+    }
+
+    const bridgeLabel = inTauri() ? "local native" : "remote native (desktop app)";
+    cppModeBadge.textContent = "- " + bridgeLabel;
     cppTiming.textContent = "checking toolchain...";
     cppCurrentTab = "stdout";
     lastCompile = { cpp: "", stdout: "", stderr: "", ok: false };
@@ -668,23 +884,31 @@ async function runAsCompiledCpp() {
 
     // Pre-flight: make sure both tools exist, else surface a fixable error.
     try {
-        const info = await invoke("bridge_info");
-        if (!info.has_jspp || !info.has_cxx) {
+        let info;
+        if (inTauri()) {
+            const { invoke } = window.__TAURI__.core;
+            info = await invoke("bridge_info");
+        } else {
+            // Re-probe in case the desktop app was started after page load.
+            if (!remoteBridge.info) await detectRemoteBridge();
+            info = remoteBridge.info;
+        }
+        if (!info || !info.has_jspp || !info.has_cxx) {
             cppTiming.textContent = "[missing tools]";
             const missing = [];
-            if (!info.has_jspp) missing.push("jspp (JSPP compiler)");
-            if (!info.has_cxx)  missing.push("g++ / clang++ / cl (C++ compiler)");
-            cppModalBody.textContent =
-                "Cannot compile: " + missing.join(" and ") + " not found.\n\n" +
-                "Open the Settings (⚙) panel and click \"Fix toolchain…\" to point ZeroEngine at these binaries,\n" +
-                "or install them on your PATH and click Re-scan in the main shell.";
+            if (!info || !info.has_jspp) missing.push("jspp (JSPP compiler)");
+            if (!info || !info.has_cxx)  missing.push("g++ / clang++ / cl (C++ compiler)");
+            const fix = inTauri()
+                ? "Open the Settings (⚙) panel and click \"Fix toolchain…\" to point ZeroEngine at these binaries,\nor install them on your PATH and click Re-scan in the main shell."
+                : "Launch ZeroEngine Desktop on this machine (it starts a local bridge on 127.0.0.1:" + REMOTE_BRIDGE_PORT + "), or install jspp + a C++ compiler and retry.";
+            cppModalBody.textContent = "Cannot compile: " + missing.join(" and ") + " not found.\n\n" + fix;
             return;
         }
         const kind = info.cxx_kind || "g++";
-        cppModeBadge.textContent = "- local native (" + kind + ")";
+        cppModeBadge.textContent = "- " + bridgeLabel + " (" + kind + ")";
     } catch (err) {
         cppTiming.textContent = "[error]";
-        cppModalBody.textContent = "bridge_info failed: " + (err?.message || err);
+        cppModalBody.textContent = "bridge info failed: " + (err?.message || err);
         return;
     }
 
@@ -696,13 +920,7 @@ async function runAsCompiledCpp() {
     const t0 = performance.now();
     let res;
     try {
-        res = await invoke("compile_and_run", {
-            source: editor.value,
-            options: {
-                stdin:     stdinInput?.value || "",
-                opt_level: optSelect?.value  || "O2"
-            }
-        });
+        res = await compileAndRun(source, { stdin: stdinText, opt_level: optLevel });
     } catch (err) {
         const msg = (err && err.message) ? err.message : String(err);
         cppTiming.textContent = "[ERROR]";
@@ -714,6 +932,16 @@ async function runAsCompiledCpp() {
     lastCompile.stdout = res.stdout || "";
     lastCompile.stderr = res.stderr || "";
     lastCompile.ok     = !!res.ok;
+
+    // Only cache successful compiles; failures are usually being iterated on.
+    if (res.ok) {
+        compileCache.set(cacheKey, {
+            cpp: res.cpp || "",
+            stdout: res.stdout || "",
+            stderr: res.stderr || "",
+            jspp_ms: res.jspp_ms, cxx_ms: res.cxx_ms, run_ms: res.run_ms, total_ms: total
+        });
+    }
 
     const parts = [
         "jspp:" + res.jspp_ms + "ms",
@@ -730,6 +958,108 @@ async function runAsCompiledCpp() {
         cppCurrentTab = "stdout"; // show build error
     }
     renderCppModal();
+
+    // If the native binary produced visual-protocol frames, close the modal
+    // and replay them on the canvas. This is the "C++ actually drives the
+    // canvas" path: the stream came from a freshly compiled .exe you just
+    // ran, not from the JS interpreter.
+    if (res.ok && lastCompile.stdout && lastCompile.stdout.indexOf("@F ") !== -1) {
+        cppModal.style.display = "none";
+        playNativeFrames(lastCompile.stdout, total);
+    }
+}
+
+// Parse the line protocol and replay draw ops on the current canvas,
+// frame by frame, synced to the display refresh rate. Loops indefinitely.
+function playNativeFrames(stdout, compileMs, cached) {
+    stopAnim();
+    outEl.innerHTML = "";
+
+    const lines = stdout.split(/\r?\n/);
+    const frames = [];
+    const userPrints = [];
+    let cur = null;
+    let sawEnd = false;
+    for (const line of lines) {
+        if (!line) continue;
+        if (line[0] !== "@") { userPrints.push(line); continue; }
+        if (line.startsWith("@F ")) {
+            if (cur) frames.push(cur);
+            cur = [];
+            continue;
+        }
+        if (line === "@E") { if (cur) { frames.push(cur); cur = null; } sawEnd = true; continue; }
+        if (!cur) cur = [];
+        cur.push(line);
+    }
+    // If the stdout ends without @E, the last @F frame may be incomplete
+    // (stdout was truncated mid-frame or runtime was killed by timeout).
+    // Drop it to keep replay clean.
+    if (cur && sawEnd) frames.push(cur);
+
+    for (const p of userPrints) appendOut(p);
+
+    // Detect whether this is a 2D or 3D animation from the op tags.
+    const tags = new Set();
+    for (const f of frames) for (const l of f) tags.add(l.slice(0, 2));
+    const is3d = tags.has("@S") || tags.has("@Z") || tags.has("@K");
+    const is2d = tags.has("@C") || tags.has("@R") || tags.has("@O") || tags.has("@L");
+    if (is3d && !is2d) {
+        setMode("3d");
+        // Any non-per-frame setFaceColor calls emitted before the first @F
+        // still live as ops in frames[0] if the C++ run order is preserved —
+        // they'll apply on the first replay tick.
+    } else if (is2d) {
+        setMode("2d");
+    }
+
+    appendOut("native C++ produced " + frames.length + " frames (" + stdout.length +
+              " bytes stdout) — " + (cached ? "cached" : "compile+run took " + compileMs + "ms") + ".", "info");
+    appendOut("replaying on canvas (looping)…", "info");
+
+    const nb = document.getElementById("native-badge");
+    const nbText = document.getElementById("native-badge-text");
+    if (nb) {
+        nb.style.display = "inline-block";
+        nb.classList.remove("paused");
+        nbText.textContent = (cached ? "native C++ (cached)" : "native C++") +
+            " · " + frames.length + " frames" +
+            (cached ? "" : " · " + compileMs + "ms build");
+    }
+    nativePaused = false;
+
+    let fi = 0;
+    const step = () => {
+        if (!nativePaused) {
+            applyFrame(frames[fi]);
+            if (currentMode === "3d" && renderer3d) renderer3d.render(scene3d, camera3d);
+            fi = (fi + 1) % frames.length;
+        }
+        animHandle = requestAnimationFrame(step);
+    };
+    animHandle = requestAnimationFrame(step);
+}
+
+// Click the badge to pause / resume the native replay.
+document.getElementById("native-badge").addEventListener("click", () => {
+    nativePaused = !nativePaused;
+    document.getElementById("native-badge").classList.toggle("paused", nativePaused);
+});
+
+function applyFrame(ops) {
+    for (const line of ops) {
+        const parts = line.split(" ");
+        const tag = parts[0];
+        switch (tag) {
+            case "@C": clear2d(+parts[1], +parts[2], +parts[3]); break;
+            case "@R": drawRect(+parts[1], +parts[2], +parts[3], +parts[4], +parts[5], +parts[6], +parts[7]); break;
+            case "@O": drawCircle(+parts[1], +parts[2], +parts[3], +parts[4], +parts[5], +parts[6]); break;
+            case "@L": drawLine(+parts[1], +parts[2], +parts[3], +parts[4], +parts[5], +parts[6], +parts[7]); break;
+            case "@S": setRotation(+parts[1], +parts[2]); break;
+            case "@Z": setScale(+parts[1]); break;
+            case "@K": setFaceColor(+parts[1], +parts[2], +parts[3], +parts[4]); break;
+        }
+    }
 }
 
 btnCompileCpp.addEventListener("click", runAsCompiledCpp);
@@ -737,6 +1067,43 @@ cppModalClose.addEventListener("click", () => { cppModal.style.display = "none";
 cppModal.addEventListener("click", (e) => { if (e.target === cppModal) cppModal.style.display = "none"; });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") cppModal.style.display = "none"; });
 cppTabs.forEach(t => t.addEventListener("click", () => { cppCurrentTab = t.dataset.ctab; renderCppModal(); }));
+
+// Copy current view (stdout or generated.cpp) to clipboard.
+document.getElementById("cpp-copy").addEventListener("click", async () => {
+    const text = cppCurrentTab === "cpp" ? (lastCompile.cpp || "") : (lastCompile.stdout || "");
+    if (!text) return;
+    try {
+        await navigator.clipboard.writeText(text);
+        const btn = document.getElementById("cpp-copy");
+        const prev = btn.textContent;
+        btn.textContent = "Copied ✓";
+        setTimeout(() => { btn.textContent = prev; }, 1200);
+    } catch (err) {
+        alert("Copy failed: " + (err?.message || err));
+    }
+});
+
+// Save generated.cpp to disk. Desktop only — uses the Tauri save dialog.
+document.getElementById("cpp-save").addEventListener("click", async () => {
+    if (!inTauri()) { alert("Save is only available in ZeroEngine Desktop."); return; }
+    if (!lastCompile.cpp) { alert("Nothing to save — compile first."); return; }
+    try {
+        const { save } = window.__TAURI__.dialog;
+        const picked = await save({
+            defaultPath: "generated.cpp",
+            filters: [{ name: "C++ source", extensions: ["cpp", "cxx", "cc"] }]
+        });
+        if (!picked || typeof picked !== "string") return;
+        const { invoke } = window.__TAURI__.core;
+        await invoke("save_text_file", { path: picked, contents: lastCompile.cpp });
+        const btn = document.getElementById("cpp-save");
+        const prev = btn.textContent;
+        btn.textContent = "Saved ✓";
+        setTimeout(() => { btn.textContent = prev; }, 1400);
+    } catch (err) {
+        alert("Save failed: " + (err?.message || err));
+    }
+});
 
 // ---------- Open / Save via tauri-plugin-dialog ----------
 async function openJsppFile() {
@@ -830,7 +1197,54 @@ if (editor) {
     });
 }
 
-loadScene("hello");
+// ---------- .zeroapp handoff ----------
+// If the shell stashed a pending app in sessionStorage, skip the default
+// scene, load the app's source into the editor, show a banner, and auto-run
+// it natively (when the bridge is available).
+function applyPendingZeroApp() {
+    let raw;
+    try { raw = sessionStorage.getItem("zeroengine.pending-app"); } catch { return false; }
+    if (!raw) return false;
+    try { sessionStorage.removeItem("zeroengine.pending-app"); } catch {}
+
+    let app;
+    try { app = JSON.parse(raw); } catch { return false; }
+    if (!app || typeof app.source !== "string") return false;
+
+    editor.value = app.source;
+    try { localStorage.setItem("zeroengine.jspp-source", app.source); } catch {}
+
+    const banner = document.getElementById("app-banner");
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+    const ver = app.version ? `<span class="ver">v${esc(app.version)}</span>` : "";
+    const desc = app.description ? `<span class="desc">— ${esc(app.description)}</span>` : "";
+    banner.innerHTML =
+        `<span class="name">${esc(app.name || "Unnamed app")}</span>${ver}${desc}` +
+        `<span class="spacer"></span>` +
+        `<button id="app-banner-close" title="Close the app view and return to Playground">close</button>`;
+    banner.style.display = "flex";
+    document.getElementById("app-banner-close").addEventListener("click", () => {
+        banner.style.display = "none";
+    });
+
+    // Auto-run. Prefer native C++; fall back to the JS interpreter if the
+    // bridge is unavailable (shouldn't happen inside the desktop shell, but
+    // keeps this page usable in a plain browser).
+    setTimeout(() => {
+        if (inTauri() && typeof runAsCompiledCpp === "function") {
+            runAsCompiledCpp();
+        } else {
+            run();
+        }
+    }, 50);
+    return true;
+}
+
+if (!applyPendingZeroApp()) {
+    loadScene("hello");
+}
 </script>
 
 </body>

@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod bridge;
+mod bridge_server;
 
 use tauri::menu::{MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::{Emitter, Manager};
@@ -21,6 +22,7 @@ fn main() {
             bridge::pick_toolchain,
             bridge::read_text_file,
             bridge::save_text_file,
+            bridge::load_zeroapp,
         ])
         .setup(|app| {
             // Build native menu: File / View / Help.
@@ -122,6 +124,28 @@ fn main() {
             tauri::async_runtime::spawn(async move {
                 let state: tauri::State<bridge::ToolchainState> = handle.state();
                 state.detect().await;
+            });
+
+            // Start the local HTTP bridge server so the web build of the
+            // playground (GitHub Pages, file://, etc.) can use this desktop
+            // app's native toolchain. Binds only to 127.0.0.1 and validates
+            // Origin against a hardcoded allowlist.
+            let handle_http = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let state: tauri::State<bridge::ToolchainState> = handle_http.state();
+                let shared = state.inner().clone();
+                match bridge_server::start(shared, bridge_server::DEFAULT_PORT).await {
+                    Ok(addr) => {
+                        eprintln!("[bridge_server] listening on http://{}", addr);
+                        if let Some(w) = handle_http.get_webview_window("main") {
+                            let _ = w.emit(
+                                "bridge://server-ready",
+                                serde_json::json!({ "addr": addr.to_string() }),
+                            );
+                        }
+                    }
+                    Err(e) => eprintln!("[bridge_server] failed to start: {e}"),
+                }
             });
             Ok(())
         })

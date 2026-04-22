@@ -17,7 +17,7 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::process::Stdio;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Runtime, State};
 use tokio::io::AsyncWriteExt;
@@ -25,12 +25,15 @@ use tokio::io::AsyncWriteExt;
 const MAX_SOURCE_BYTES: usize = 256 * 1024;
 const COMPILE_TIMEOUT: Duration = Duration::from_secs(30);
 const RUN_TIMEOUT: Duration = Duration::from_secs(10);
-const STDOUT_CAP: usize = 512 * 1024;
+// Large enough to hold ~240 frames of the 400-particle protocol stream
+// (~3.5 MB). Beyond this the bridge truncates; the frontend tolerates
+// a short tail, but truncation mid-frame would corrupt replay.
+const STDOUT_CAP: usize = 8 * 1024 * 1024;
 const STDIN_CAP: usize = 64 * 1024;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct ToolchainState {
-    inner: Mutex<Toolchain>,
+    inner: Arc<Mutex<Toolchain>>,
 }
 
 #[derive(Default, Clone, Debug, Serialize)]
@@ -309,6 +312,18 @@ pub async fn compile_and_run(
     source: String,
     options: Option<RunOptions>,
 ) -> Result<CompileAndRunResult, String> {
+    let tc = state.snapshot();
+    compile_and_run_core(tc, source, options).await
+}
+
+/// Tauri-free entry point to the full compile-and-run pipeline. Used by
+/// both the Tauri command and the local HTTP bridge server so a single
+/// code path drives JSPP → C++ → run for all frontends.
+pub async fn compile_and_run_core(
+    tc: Toolchain,
+    source: String,
+    options: Option<RunOptions>,
+) -> Result<CompileAndRunResult, String> {
     if source.len() > MAX_SOURCE_BYTES {
         return Err(format!(
             "source too large ({} bytes > {} limit)",
@@ -316,7 +331,6 @@ pub async fn compile_and_run(
             MAX_SOURCE_BYTES
         ));
     }
-    let tc = state.snapshot();
     let jspp = tc
         .jspp
         .clone()
@@ -587,4 +601,121 @@ fn fresh_scratch(tag: &str) -> Result<PathBuf, String> {
     let dir = base.join(format!("{}-{}", tag, nanos));
     std::fs::create_dir_all(&dir).map_err(|e| format!("mkdir scratch: {e}"))?;
     Ok(dir)
+}
+
+// ============================================================
+// ZeroEngine Apps (.zeroapp bundles)
+// ============================================================
+//
+// A .zeroapp is a folder on disk containing at minimum:
+//
+//   zeroapp.json          - manifest (see ZeroAppManifest below)
+//   <entry>.jspp          - the JSPP entry source referenced by manifest
+//
+// Extra .jspp / .cpp / asset files next to the manifest are allowed but
+// ignored in this MVP. Future versions can grow this into multi-file
+// projects + bundled native hot-path C++. The manifest may be selected
+// directly (zeroapp.json) or a containing folder may be selected.
+
+#[derive(Debug, Deserialize)]
+struct ZeroAppManifest {
+    name: String,
+    #[serde(default)]
+    version: Option<String>,
+    #[serde(default)]
+    description: Option<String>,
+    entry: String,
+    #[serde(default)]
+    mode: Option<String>, // "2d" | "3d" hint (optional)
+    #[serde(default)]
+    author: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct LoadedZeroApp {
+    pub name: String,
+    pub version: Option<String>,
+    pub description: Option<String>,
+    pub author: Option<String>,
+    pub mode: Option<String>,
+    pub entry: String,
+    pub source: String,
+    pub root: String,
+    pub manifest_path: String,
+}
+
+#[tauri::command]
+pub async fn load_zeroapp(path: String) -> Result<LoadedZeroApp, String> {
+    let input = PathBuf::from(&path);
+    if !input.exists() {
+        return Err(format!("path does not exist: {}", input.display()));
+    }
+
+    // Accept either the manifest file directly or a folder containing it.
+    let manifest_path = if input.is_dir() {
+        input.join("zeroapp.json")
+    } else {
+        input.clone()
+    };
+    if !manifest_path.is_file() {
+        return Err(format!(
+            "zeroapp.json not found at {}",
+            manifest_path.display()
+        ));
+    }
+
+    let root = manifest_path
+        .parent()
+        .ok_or_else(|| "manifest has no parent directory".to_string())?
+        .to_path_buf();
+
+    let raw = tokio::fs::read_to_string(&manifest_path)
+        .await
+        .map_err(|e| format!("read manifest: {e}"))?;
+    let manifest: ZeroAppManifest = serde_json::from_str(&raw)
+        .map_err(|e| format!("parse zeroapp.json: {e}"))?;
+
+    // Sanity-check the entry path: must be a relative filename with no
+    // parent traversal, and must resolve to a file inside the app root.
+    let entry_rel = manifest.entry.trim();
+    if entry_rel.is_empty()
+        || entry_rel.contains("..")
+        || entry_rel.starts_with('/')
+        || entry_rel.starts_with('\\')
+        || entry_rel.contains(':')
+    {
+        return Err(format!("invalid entry path in manifest: {:?}", entry_rel));
+    }
+    let entry_path = root.join(entry_rel);
+    if !entry_path.is_file() {
+        return Err(format!(
+            "entry file not found: {}",
+            entry_path.display()
+        ));
+    }
+    let meta = tokio::fs::metadata(&entry_path)
+        .await
+        .map_err(|e| format!("stat entry: {e}"))?;
+    if meta.len() > MAX_SOURCE_BYTES as u64 {
+        return Err(format!(
+            "entry source too large ({} bytes, cap {})",
+            meta.len(),
+            MAX_SOURCE_BYTES
+        ));
+    }
+    let source = tokio::fs::read_to_string(&entry_path)
+        .await
+        .map_err(|e| format!("read entry: {e}"))?;
+
+    Ok(LoadedZeroApp {
+        name: manifest.name,
+        version: manifest.version,
+        description: manifest.description,
+        author: manifest.author,
+        mode: manifest.mode,
+        entry: entry_rel.to_string(),
+        source,
+        root: root.display().to_string(),
+        manifest_path: manifest_path.display().to_string(),
+    })
 }

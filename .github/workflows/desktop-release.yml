@@ -86,6 +86,15 @@ jobs:
           fi
           ls -la desktop/resources
 
+      - name: Stage JSPP reference interpreter into client/prototype/
+        shell: bash
+        run: |
+          set -e
+          mkdir -p client/prototype
+          cp _jspp/prototype/jspp.mjs        client/prototype/
+          cp _jspp/prototype/typechecker.mjs client/prototype/
+          ls -la client/prototype
+
       - name: Install Tauri CLI
         uses: taiki-e/install-action@v2
         with:

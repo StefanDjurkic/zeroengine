@@ -37,3 +37,5 @@ scripts/deploy_zeroengine.sh
 test-results/
 playwright-report/
 playwright/.cache/
+build_out.txt
+
