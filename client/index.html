@@ -61,6 +61,39 @@
 <body>
 
 <div id="boot">booting JSPP interpreter + Three.js...</div>
+<script>
+// Safety net: if the module script throws during top-level evaluation, the
+// boot overlay would otherwise hang forever. Surface the real error and
+// offer a "skip to playground" escape hatch.
+(function () {
+    var shown = false;
+    function fail(msg) {
+        if (shown) return; shown = true;
+        var b = document.getElementById("boot");
+        if (!b) return;
+        b.innerHTML =
+            '<div style="max-width:640px;padding:24px;text-align:left;font-family:Consolas,Monaco,monospace;font-size:12px;line-height:1.5;">' +
+            '<div style="color:#f87171;font-weight:700;margin-bottom:8px;">Landing demo failed to boot</div>' +
+            '<div style="color:#9ca3af;white-space:pre-wrap;word-break:break-word;">' + String(msg).replace(/[<>&]/g, function(c){return {"<":"&lt;",">":"&gt;","&":"&amp;"}[c];}) + '</div>' +
+            '<div style="margin-top:16px;"><a href="./jspp.html" style="color:#22d3ee;">Skip to JSPP playground &rarr;</a></div>' +
+            '</div>';
+        b.style.pointerEvents = "auto";
+    }
+    window.addEventListener("error", function (e) {
+        fail((e.error && (e.error.stack || e.error.message)) || e.message || "unknown error");
+    });
+    window.addEventListener("unhandledrejection", function (e) {
+        fail((e.reason && (e.reason.stack || e.reason.message)) || String(e.reason));
+    });
+    // Hard timeout: if nothing has hidden the overlay after 8s, declare failure.
+    setTimeout(function () {
+        var b = document.getElementById("boot");
+        if (b && !b.classList.contains("hidden") && !shown) {
+            fail("Timed out after 8s. The JSPP interpreter or Three.js module did not finish loading. Check the browser console for details.");
+        }
+    }, 8000);
+})();
+</script>
 
 <div id="stage"><canvas id="c"></canvas></div>
 
