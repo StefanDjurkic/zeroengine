@@ -3,385 +3,690 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZeroEngine x JSPP</title>
+<title>ZeroEngine</title>
 <style>
-    :root {
-        --bg-0:#0b0f17; --bg-1:#121826; --panel:#1a2233; --stroke:#2a3347;
-        --text:#e5e7eb; --muted:#9ca3af; --accent:#22d3ee; --accent-2:#a78bfa;
-        --ok:#34d399;
-    }
-    * { box-sizing: border-box; }
-    html, body { margin:0; padding:0; height:100%; background:var(--bg-0);
-        color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; overflow:hidden; }
-    #stage { position:fixed; inset:0; }
-    canvas { display:block; width:100%; height:100%; }
+:root {
+    --bg-0:#0b0f17; --bg-1:#121826; --panel:#1a2233; --stroke:#2a3347;
+    --text:#e5e7eb; --muted:#9ca3af; --accent:#22d3ee; --accent-2:#a78bfa;
+    --ok:#34d399; --warn:#fbbf24; --err:#ef4444;
+}
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; height:100%; background:var(--bg-0);
+    color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; overflow:hidden; }
+body {
+    background:
+        radial-gradient(ellipse at top left, rgba(34,211,238,.10), transparent 50%),
+        radial-gradient(ellipse at bottom right, rgba(167,139,250,.10), transparent 55%),
+        var(--bg-0);
+    display:grid; grid-template-rows: auto 1fr auto; height:100vh;
+}
 
-    .hud { position:fixed; z-index:5; pointer-events:none; }
-    .hud .card { pointer-events:auto; background:rgba(17,22,35,.82);
-        border:1px solid var(--stroke); border-radius:14px;
-        backdrop-filter: blur(10px); box-shadow: 0 10px 40px rgba(0,0,0,.45); }
+/* ---- top bar ---- */
+.topbar {
+    display:flex; align-items:center; gap:14px; padding:14px 22px;
+    border-bottom:1px solid var(--stroke); background:rgba(11,15,23,.6);
+    backdrop-filter: blur(10px);
+}
+.brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:15px; }
+.brand .dot { width:10px; height:10px; border-radius:50%; background:var(--ok);
+    box-shadow: 0 0 10px var(--ok); animation: pulse 1.8s infinite; }
+@keyframes pulse { 0%,100% { opacity:1; transform:scale(1);} 50% { opacity:.55; transform:scale(1.25);} }
+.brand .z { background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+.brand .sub { font-size:11px; color:var(--muted); font-weight:500; margin-left:4px; }
 
-    #top-left { top:20px; left:20px; max-width:440px; }
-    #top-left .card { padding:18px 20px; }
-    .brand { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
-    .dot { width:10px; height:10px; border-radius:50%; background:var(--ok);
-        box-shadow: 0 0 10px var(--ok); animation: pulse 1.6s infinite; }
-    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1);} 50% { opacity:.55; transform:scale(1.25);} }
-    .brand h1 { margin:0; font-size:20px; font-weight:700; letter-spacing:.2px; }
-    .brand .x { color:var(--muted); font-weight:400; }
-    .brand .j { background:linear-gradient(90deg,var(--accent),var(--accent-2));
-        -webkit-background-clip:text; background-clip:text; color:transparent; }
-    .tag { font-size:12px; color:var(--muted); margin:0 0 10px; }
-    .line { font-size:13px; line-height:1.5; color:#cbd5e1; margin:6px 0; }
-    .line b { color:#fff; }
-    .btns { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-    .btn { text-decoration:none; color:var(--text); border:1px solid var(--stroke);
-        background:var(--panel); padding:8px 12px; border-radius:10px; font-size:13px;
-        display:inline-flex; align-items:center; gap:6px; cursor:pointer;
-        font-family:inherit; transition:all .15s; }
-    .btn:hover { transform:translateY(-1px); border-color:var(--accent); }
-    .btn.primary { background:linear-gradient(135deg,var(--accent),var(--accent-2));
-        border:none; color:#0b0f17; font-weight:700; }
+.addr-wrap { flex:1; display:flex; gap:8px; max-width:720px; margin:0 auto; }
+.addr {
+    flex:1; background:var(--panel); border:1px solid var(--stroke);
+    color:var(--text); padding:8px 14px; border-radius:999px;
+    font-family: 'Fira Code', Consolas, Monaco, monospace; font-size:13px; outline:none;
+}
+.addr:focus { border-color:var(--accent); }
+.btn {
+    border:1px solid var(--stroke); background:var(--panel); color:var(--text);
+    padding:8px 14px; border-radius:10px; cursor:pointer; font-size:13px;
+    font-family:inherit; display:inline-flex; align-items:center; gap:6px;
+}
+.btn:hover { border-color:var(--accent); }
+.btn.primary {
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    border:none; color:#0b0f17; font-weight:700;
+}
+.btn:disabled { opacity:.5; cursor:not-allowed; }
 
-    #hint { position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
-        z-index:5; padding:10px 16px; font-size:13px; color:var(--muted);
-        background:rgba(17,22,35,.75); border:1px solid var(--stroke); border-radius:999px;
-        backdrop-filter: blur(8px); pointer-events:none; }
+/* ---- content ---- */
+.content { overflow:auto; padding:40px 5vw; }
+.hero { max-width:880px; margin:0 auto 32px; }
+.hero h1 { font-size:34px; margin:0 0 10px; font-weight:700; letter-spacing:-.5px; }
+.hero h1 .z { background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+.hero p { color:#cbd5e1; line-height:1.6; margin:0; font-size:15px; }
 
-    #credit { position:fixed; bottom:20px; right:20px; z-index:5; font-size:12px;
-        color:var(--muted); background:rgba(17,22,35,.75); border:1px solid var(--stroke);
-        padding:8px 12px; border-radius:999px; backdrop-filter: blur(8px); pointer-events:auto; }
-    #credit a { color:var(--accent); text-decoration:none; }
+.grid { display:grid; gap:18px; max-width:1100px; margin:0 auto;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.tile {
+    background: linear-gradient(180deg, rgba(26,34,51,.9), rgba(18,24,38,.9));
+    border:1px solid var(--stroke); border-radius:16px; padding:22px;
+    cursor:pointer; transition: transform .15s ease, border-color .15s ease;
+    display:flex; flex-direction:column; gap:10px; position:relative; overflow:hidden;
+}
+.tile:hover { transform: translateY(-2px); border-color: var(--accent); }
+.tile .icon { font-size:28px; line-height:1; }
+.tile h3 { margin:0; font-size:16px; }
+.tile p { margin:0; color:var(--muted); font-size:13px; line-height:1.5; }
+.tile .chip {
+    display:inline-block; align-self:flex-start;
+    font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+    padding:3px 8px; border-radius:999px; border:1px solid var(--stroke); color:var(--muted);
+}
+.tile .chip.ok   { color:var(--ok);   border-color: rgba(52,211,153,.4); background:rgba(52,211,153,.08); }
+.tile .chip.warn { color:var(--warn); border-color: rgba(251,191,36,.4); background:rgba(251,191,36,.08); }
+.tile .chip.err  { color:var(--err);  border-color: rgba(239,68,68,.4);  background:rgba(239,68,68,.08); }
 
-    #boot { position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-        z-index:10; background:var(--bg-0); color:var(--muted); font-size:14px; transition:opacity .4s; }
-    #boot.hidden { opacity:0; pointer-events:none; }
+/* ---- apps modal (sample gallery) ---- */
+.modal-bg {
+    position:fixed; inset:0; background:rgba(5,8,14,.75); backdrop-filter: blur(6px);
+    display:none; align-items:center; justify-content:center; z-index:100;
+}
+.modal-bg.open { display:flex; }
+.modal {
+    width:min(960px, 92vw); max-height:86vh; overflow:auto;
+    background:var(--bg-1); border:1px solid var(--stroke); border-radius:16px;
+    padding:24px 28px; box-shadow: 0 30px 80px rgba(0,0,0,.6);
+}
+.modal header { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+.modal header h2 { margin:0; font-size:20px; }
+.modal header .spacer { flex:1; }
+.modal header .x { cursor:pointer; font-size:20px; color:var(--muted); padding:0 8px; line-height:1; background:none; border:none; }
+.modal header .x:hover { color:var(--text); }
+.modal > p.lead { color:var(--muted); font-size:13px; margin:0 0 18px; }
+.sample-grid { display:grid; gap:14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.sample {
+    background:linear-gradient(180deg, rgba(26,34,51,.85), rgba(18,24,38,.85));
+    border:1px solid var(--stroke); border-radius:12px; padding:16px; cursor:pointer;
+    display:flex; flex-direction:column; gap:6px; transition: transform .15s, border-color .15s;
+}
+.sample:hover { transform: translateY(-2px); border-color: var(--accent); }
+.sample .ic { font-size:22px; }
+.sample .nm { font-weight:700; font-size:14px; }
+.sample .dc { font-size:12px; color:var(--muted); line-height:1.4; }
+.sample .meta { display:flex; gap:8px; margin-top:6px; }
+.sample .tag {
+    font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+    padding:2px 7px; border-radius:999px; border:1px solid var(--stroke); color:var(--muted);
+}
+.sample .tag.c2d { color:var(--accent); border-color: rgba(34,211,238,.4); background:rgba(34,211,238,.08); }
+.sample .tag.c3d { color:var(--accent-2); border-color: rgba(167,139,250,.4); background:rgba(167,139,250,.08); }
+.modal footer { margin-top:20px; padding-top:16px; border-top:1px solid var(--stroke);
+    display:flex; align-items:center; gap:10px; }
+.modal footer .hint { color:var(--muted); font-size:12px; flex:1; }
+
+/* ---- bridge panel ---- */
+.panel {
+    max-width:1100px; margin:32px auto 0; background:var(--bg-1);
+    border:1px solid var(--stroke); border-radius:14px; padding:18px 22px;
+    display:flex; flex-wrap:wrap; gap:16px; align-items:center;
+}
+.panel .row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.panel b { color:#fff; }
+.panel code { font-family:'Fira Code',Consolas,Monaco,monospace; color:#cbd5e1;
+    background:rgba(0,0,0,.3); padding:2px 6px; border-radius:4px; font-size:12px; }
+.panel .spacer { flex:1; }
+
+/* ---- footer ---- */
+.footer { padding:12px 22px; border-top:1px solid var(--stroke);
+    display:flex; justify-content:space-between; font-size:11px; color:var(--muted);
+    background:rgba(11,15,23,.6); }
+.footer a { color:var(--accent); text-decoration:none; }
 </style>
 </head>
 <body>
 
-<div id="boot">booting JSPP interpreter + Three.js...</div>
-<script>
-// Safety net: if the module script throws during top-level evaluation, the
-// boot overlay would otherwise hang forever. Surface the real error and
-// offer a "skip to playground" escape hatch.
-(function () {
-    var shown = false;
-    function fail(msg) {
-        if (shown) return; shown = true;
-        var b = document.getElementById("boot");
-        if (!b) return;
-        b.innerHTML =
-            '<div style="max-width:640px;padding:24px;text-align:left;font-family:Consolas,Monaco,monospace;font-size:12px;line-height:1.5;">' +
-            '<div style="color:#f87171;font-weight:700;margin-bottom:8px;">Landing demo failed to boot</div>' +
-            '<div style="color:#9ca3af;white-space:pre-wrap;word-break:break-word;">' + String(msg).replace(/[<>&]/g, function(c){return {"<":"&lt;",">":"&gt;","&":"&amp;"}[c];}) + '</div>' +
-            '<div style="margin-top:16px;"><a href="./jspp.html" style="color:#22d3ee;">Skip to JSPP playground &rarr;</a></div>' +
-            '</div>';
-        b.style.pointerEvents = "auto";
-    }
-    window.addEventListener("error", function (e) {
-        fail((e.error && (e.error.stack || e.error.message)) || e.message || "unknown error");
-    });
-    window.addEventListener("unhandledrejection", function (e) {
-        fail((e.reason && (e.reason.stack || e.reason.message)) || String(e.reason));
-    });
-    // Hard timeout: if nothing has hidden the overlay after 8s, declare failure.
-    setTimeout(function () {
-        var b = document.getElementById("boot");
-        if (b && !b.classList.contains("hidden") && !shown) {
-            fail("Timed out after 8s. The JSPP interpreter or Three.js module did not finish loading. Check the browser console for details.");
-        }
-    }, 8000);
-})();
-</script>
+<div class="topbar">
+    <div class="brand">
+        <span class="dot"></span>
+        <span class="z">ZeroEngine</span>
+        <span class="sub">v0.2.0</span>
+    </div>
+    <form id="addr-form" class="addr-wrap">
+        <input id="addr" class="addr" placeholder="Enter a URL and press Enter to open in a new ZeroEngine window..." spellcheck="false" autocomplete="off">
+        <button class="btn primary" type="submit">Go</button>
+        <button id="btn-system" class="btn" type="button" title="Open URL in your system default browser instead.">System</button>
+    </form>
+    <button id="btn-playground" class="btn">Playground</button>
+</div>
 
-<div id="stage"><canvas id="c"></canvas></div>
+<div class="content">
+    <div class="hero">
+        <h1>Welcome to <span class="z">ZeroEngine</span></h1>
+        <p>A desktop shell that doubles as a browser, a JSPP playground, and a local compile bridge. Type any URL above to open it in a new window. Open the Playground to write JSPP and run it as real compiled C++ on your machine.</p>
+    </div>
 
-<div id="top-left" class="hud">
-    <div class="card">
-        <div class="brand">
-            <span class="dot"></span>
-            <h1><span class="j">JSPP</span> <span class="x">x</span> ZeroEngine</h1>
+    <div class="grid">
+        <div class="tile" id="tile-playground">
+            <div class="icon">[J]</div>
+            <h3>JSPP Playground</h3>
+            <p>Open the visual playground: write JSPP, see it draw on a live 2D canvas or drive a Three.js cube in real time. This is the main experience.</p>
+            <span id="chip-playground" class="chip ok">ready</span>
         </div>
-        <p class="tag">live 3D demo - a JSPP script drives this cube in real time</p>
-        <p id="bridge-status" class="line" style="display:none;padding:8px 10px;border-radius:8px;border:1px solid #065f46;background:rgba(6,28,18,.7);color:#bbf7d0;font-family:Consolas,Monaco,monospace;font-size:12px;">checking desktop bridge...</p>
-        <p class="line">The cube's rotation, scale, colors, and click behavior are written in <b>JSPP</b>. A reference interpreter (JavaScript) runs that JSPP source in your browser and calls into <b>Three.js</b> to render. You are watching JSPP semantics executing, not canned animation.</p>
-        <p class="line">JSPP also has a real <b>C++20 compiler</b>. Install <b>ZeroEngine Desktop</b> and the <a href="./jspp.html" style="color:var(--accent)">playground</a>'s <code>Run as compiled C++</code> button will send whatever you type through the JSPP compiler, build the resulting C++ with your local toolchain, and execute the native binary - all without leaving the app. Without the desktop install, the playground still runs JSPP in-browser via the JS reference interpreter.</p>
-        <div class="btns">
-            <a class="btn primary" href="./jspp.html">Open JSPP Playground</a>
-            <a id="apps-btn" class="btn" href="./jspp.html#apps" style="opacity:.45;pointer-events:none;" title="Requires ZeroEngine Desktop running locally">Sample Apps (native C++)</a>
-            <a class="btn" href="https://github.com/StefanDjurkic/zeroengine/releases/latest" target="_blank" rel="noopener">Download ZeroEngine Desktop</a>
-            <a class="btn" href="https://github.com/StefanDjurkic/jspp" target="_blank" rel="noopener">JSPP repo</a>
-            <a class="btn" href="https://github.com/StefanDjurkic/zeroengine" target="_blank" rel="noopener">ZeroEngine repo</a>
+
+        <div class="tile" id="tile-browser">
+            <div class="icon">[W]</div>
+            <h3>Browser</h3>
+            <p>Open any URL in a new webview window. ZeroEngine is a browser when you want it to be - and the pages you open can talk to the local bridge via <code>window.__TAURI__</code>.</p>
+            <span class="chip">ready</span>
         </div>
+
+        <div class="tile" id="tile-bridge">
+            <div class="icon">[C]</div>
+            <h3>Compile Bridge</h3>
+            <p id="bridge-msg">Detecting toolchain...</p>
+            <span id="chip-bridge" class="chip">checking</span>
+        </div>
+
+        <div class="tile" id="tile-apps">
+            <div class="icon">[A]</div>
+            <h3>ZeroEngine Apps</h3>
+            <p>A play area of sample <code>.zeroapp</code> bundles. Click to open the gallery, pick a scene, and watch it run as native C++ on your machine.</p>
+            <span id="chip-apps" class="chip ok">6 samples</span>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="row">
+            <span>Bridge:</span>
+            <span id="bridge-jspp">jspp: <b>?</b></span>
+            <span id="bridge-cxx">compiler: <b>?</b></span>
+        </div>
+        <div class="spacer"></div>
+        <button id="btn-rescan" class="btn">Re-scan</button>
     </div>
 </div>
 
-<script>
-// Bridge detection: if ZeroEngine Desktop is running on this machine, its
-// HTTP server on 127.0.0.1:17849 will respond to /info. The landing page
-// surfaces that so the visitor knows C++ compiles are available right now.
-(function () {
-    var el = document.getElementById("bridge-status");
-    if (!el) return;
-    el.style.display = "block";
-    fetch("http://127.0.0.1:17849/info", { mode: "cors" })
-        .then(function (r) { return r.ok ? r.json() : null; })
-        .then(function (info) {
-            if (!info) throw new Error("no info");
-            var ok = info.has_jspp && info.has_cxx;
-            if (ok) {
-                el.style.borderColor = "#10b981";
-                el.style.background = "rgba(6,44,28,.85)";
-                el.innerHTML = '[bridge] <b style="color:#6ee7b7;">desktop connected</b> - ' +
-                    (info.cxx_kind || "native") + ' detected on 127.0.0.1:17849. ' +
-                    'Click <a href="./jspp.html" style="color:#22d3ee;">Open Playground</a> and hit ' +
-                    '<kbd style="background:#0b0f17;border:1px solid #2a3347;padding:1px 5px;border-radius:4px;">Ctrl+Shift+Enter</kbd> ' +
-                    'to compile and run native C++.';
-                // Un-grey the Sample Apps button.
-                var ab = document.getElementById("apps-btn");
-                if (ab) {
-                    ab.style.opacity = "1";
-                    ab.style.pointerEvents = "auto";
-                    ab.title = "Browse the built-in sample apps (native C++ via local bridge)";
-                }
-            } else {
-                throw new Error("missing toolchain");
-            }
-        })
-        .catch(function () {
-            el.style.borderColor = "#374151";
-            el.style.background = "rgba(17,22,35,.7)";
-            el.style.color = "#9ca3af";
-            el.innerHTML = '[bridge] no desktop detected. ' +
-                '<a href="https://github.com/StefanDjurkic/zeroengine/releases/latest" target="_blank" rel="noopener" style="color:#22d3ee;">Install ZeroEngine Desktop</a> ' +
-                'to unlock native C++ compiling from this web page.';
-        });
-})();
-</script>
+<!-- ---- Apps gallery modal ---- -->
+<div id="apps-modal" class="modal-bg" role="dialog" aria-modal="true">
+    <div class="modal">
+        <header>
+            <div class="icon" style="font-size:22px;">[A]</div>
+            <h2>Sample Apps</h2>
+            <span class="spacer"></span>
+            <button class="x" id="apps-close" title="Close (Esc)">×</button>
+        </header>
+        <p class="lead">Click any card to open it in the Playground. Each sample is a real <code>.zeroapp</code>: a JSPP program that compiles to native C++ and replays here at 60 FPS.</p>
+        <div class="sample-grid" id="sample-grid"></div>
+        <footer>
+            <span class="hint">Got your own <code>.zeroapp</code> folder? Load it from disk:</span>
+            <button class="btn" id="btn-load-from-disk">Load .zeroapp…</button>
+        </footer>
+    </div>
+</div>
 
-<div id="hint">click the cube to change colors - drag to rotate - scroll to zoom</div>
-<div id="credit">Built by <a href="https://github.com/StefanDjurkic" target="_blank" rel="noopener">Stefan Djurkic</a></div>
-
-<script type="importmap">
-{
-    "imports": {
-        "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
-        "fs":    "./node-shims.mjs",
-        "path":  "./node-shims.mjs",
-        "url":   "./node-shims.mjs"
-    }
-}
-</script>
-
-<script type="text/jspp" id="jspp-source">
-// scene.jspp - runs every frame, drives the cube.
-// Host builtins: setRotation, setScale, setFaceColor, log
-
-let rotX = 0.0;
-let rotY = 0.0;
-let pulse = 0.0;
-
-let palette = [
-    [255, 107, 107],
-    [ 78, 205, 196],
-    [255, 230, 109],
-    [ 84, 160, 255],
-    [255, 138, 221],
-    [162, 140, 255]
-];
-
-function applyPalette() {
-    for (let i = 0; i < 6; i = i + 1) {
-        let c = palette[i];
-        setFaceColor(i, c[0], c[1], c[2]);
-    }
-}
-
-function tick(t, dt) {
-    rotX = rotX + 0.006;
-    rotY = rotY + 0.009;
-    if (pulse > 0.0) {
-        pulse = pulse - dt * 2.5;
-        if (pulse < 0.0) { pulse = 0.0; }
-    }
-    setRotation(rotX, rotY);
-    setScale(1.0 + pulse * 0.25);
-}
-
-function onClick() {
-    pulse = 1.0;
-    let first = palette[0];
-    palette[0] = palette[1];
-    palette[1] = palette[2];
-    palette[2] = palette[3];
-    palette[3] = palette[4];
-    palette[4] = palette[5];
-    palette[5] = first;
-    applyPalette();
-    log("cube clicked");
-}
-
-applyPalette();
-log("scene.jspp booted");
-</script>
+<div class="footer">
+    <span>ZeroEngine - a desktop app that is also a browser, a playground, and a compile bridge.</span>
+    <span><a href="https://github.com/StefanDjurkic/zeroengine" id="link-repo">github.com/StefanDjurkic/zeroengine</a></span>
+</div>
 
 <script type="module">
-import * as THREE from "three";
+const tauri = window.__TAURI__;
+const invoke = tauri?.core?.invoke;
+const listen = tauri?.event?.listen;
+const IS_DESKTOP = !!invoke;
+const BRIDGE_HTTP = "http://127.0.0.1:17849";
 
-const bootEl = document.getElementById("boot");
-const jsppSource = document.getElementById("jspp-source").textContent.trim();
-
-const canvas = document.getElementById("c");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.setSize(innerWidth, innerHeight, false);
-renderer.setClearColor(0x0b0f17, 1);
-
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
-camera.position.set(3.2, 2.4, 4.2);
-camera.lookAt(0, 0, 0);
-
-scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-const key = new THREE.DirectionalLight(0xffe0b5, 1.1); key.position.set(5, 6, 4); scene.add(key);
-const rim = new THREE.DirectionalLight(0x88aaff, 0.6); rim.position.set(-4, -2, -3); scene.add(rim);
-
-const grid = new THREE.GridHelper(10, 20, 0x2a3347, 0x1a2233);
-grid.position.y = -1.2; scene.add(grid);
-
-const faceMats = [];
-for (let i = 0; i < 6; i++) {
-    faceMats.push(new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.6, metalness: 0.15 }));
+if (!IS_DESKTOP) {
+    // Running as the public website. Retitle and tweak copy, disable the URL
+    // bar (we can't spawn new webview windows), hide desktop-only actions.
+    document.querySelector(".hero p").textContent =
+        "Write JSPP, see it drawn live on a 2D canvas or driving a Three.js cube. Launch the ZeroEngine desktop app to turn on the local compile bridge and run your JSPP as real native C++.";
+    const addr  = document.getElementById("addr");
+    const addrBtns = document.querySelectorAll("#addr-form .btn, #btn-system");
+    if (addr) { addr.placeholder = "URL bar is desktop-only. Download ZeroEngine to open URLs in a new window."; addr.disabled = true; }
+    addrBtns.forEach(b => b.disabled = true);
+    const loadBtn = document.getElementById("btn-load-from-disk");
+    if (loadBtn) loadBtn.style.display = "none";
+    // Browser tile: in web mode, offer to open in a new tab instead.
+    const browserTile = document.getElementById("tile-browser");
+    if (browserTile) {
+        browserTile.querySelector("p").textContent =
+            "Open any URL in a new tab. In the desktop app this opens a real ZeroEngine webview window that can talk to the local bridge.";
+    }
+    // Brand subtitle: mark as web build.
+    const sub = document.querySelector(".brand .sub");
+    if (sub) sub.textContent = "web build";
 }
-const cube = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 1.4), faceMats);
-scene.add(cube);
-cube.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(cube.geometry),
-    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28 })
-));
 
-// The JSPP reference interpreter is shipped on the Pages build (copied from
-// the jspp repo) but NOT inside the Tauri desktop bundle, since the desktop
-// app has the real native compiler. If the dynamic import fails, fall back
-// to a tasteful built-in animation so the cube is still alive.
-let jspp = null;
+// ---- restore last-used URL ----
+const addrEl = document.getElementById("addr");
 try {
-    jspp = await import("./prototype/jspp.mjs");
-} catch (err) {
-    console.warn("JSPP interpreter not available on this build:", err);
+    const saved = localStorage.getItem("zeroengine.last-url");
+    if (saved) addrEl.value = saved;
+} catch {}
+
+// ---- navigate to playground (same window) ----
+function openPlayground() {
+    window.location.href = "jspp.html";
 }
+document.getElementById("btn-playground").addEventListener("click", openPlayground);
+document.getElementById("tile-playground").addEventListener("click", openPlayground);
 
-let jsppTick = null;
-let jsppOnClick = null;
-
-if (jspp) {
-    const interp = new jspp.Interpreter({ onOutput: (line) => console.log("[jspp]", line) });
-    const g = interp.global;
-    g.define("setRotation", (x, y) => { cube.rotation.x = Number(x) || 0; cube.rotation.y = Number(y) || 0; });
-    g.define("setScale",    (s)    => { cube.scale.setScalar(Number(s) || 1); });
-    g.define("setFaceColor",(idx, r, gc, b) => {
-        const m = faceMats[(idx | 0) % 6];
-        if (m) m.color.setRGB((Number(r) || 0) / 255, (Number(gc) || 0) / 255, (Number(b) || 0) / 255);
-    });
-    g.define("log", (...args) => console.log("[jspp]", ...args));
-
+// ---- browser: URL bar + tile ----
+function normalizeUrl(raw) {
+    const url = (raw || "").trim();
+    if (!url) return "";
+    if (/^[a-zA-Z][a-zA-Z0-9+.\-]*:\/\//.test(url)) return url;
+    // No scheme. If it looks like a hostname or path, add https://. Otherwise
+    // treat as a DuckDuckGo search.
+    const looksLikeHost = /^[\w.\-]+(\:\d+)?(\/.*)?$/.test(url) && url.includes(".");
+    return looksLikeHost
+        ? "https://" + url
+        : "https://duckduckgo.com/?q=" + encodeURIComponent(url);
+}
+async function openUrl(raw, { system = false } = {}) {
+    const url = normalizeUrl(raw);
+    if (!url) return;
+    try { localStorage.setItem("zeroengine.last-url", raw); } catch {}
+    if (!IS_DESKTOP) {
+        window.open(url, "_blank", "noopener,noreferrer");
+        return;
+    }
     try {
-        const parsed = jspp.parseSource(jsppSource, "scene.jspp");
-        interp.run(parsed.ast);
-        jsppTick = g.vars.get("tick");
-        jsppOnClick = g.vars.get("onClick");
+        if (system) {
+            if (tauri?.opener?.openUrl) {
+                await tauri.opener.openUrl(url);
+            } else {
+                await invoke("plugin:opener|open_url", { url });
+            }
+        } else {
+            await invoke("open_browser", { url });
+        }
     } catch (err) {
-        console.error("JSPP boot failed:", err);
-        bootEl.textContent = "JSPP boot failed: " + (err.message || err);
+        alert("Could not open URL: " + (err?.message || err));
     }
-} else {
-    // Desktop build / offline fallback: seed the palette + a simple tick so the
-    // visitor still sees the exact same animated cube.
-    const fallbackPalette = [
-        [255, 107, 107], [ 78, 205, 196], [255, 230, 109],
-        [ 84, 160, 255], [255, 138, 221], [162, 140, 255],
-    ];
-    for (let i = 0; i < 6; i++) {
-        const c = fallbackPalette[i];
-        faceMats[i].color.setRGB(c[0] / 255, c[1] / 255, c[2] / 255);
-    }
-    let rx = 0, ry = 0, pulse = 0;
-    jsppTick = (t, dt) => {
-        rx += 0.006; ry += 0.009;
-        if (pulse > 0) { pulse -= dt * 2.5; if (pulse < 0) pulse = 0; }
-        cube.rotation.x = rx; cube.rotation.y = ry;
-        cube.scale.setScalar(1 + pulse * 0.25);
-    };
-    jsppOnClick = () => {
-        pulse = 1;
-        const first = fallbackPalette.shift();
-        fallbackPalette.push(first);
-        for (let i = 0; i < 6; i++) {
-            const c = fallbackPalette[i];
-            faceMats[i].color.setRGB(c[0] / 255, c[1] / 255, c[2] / 255);
-        }
-    };
 }
-
-let dragging = false, lastX = 0, lastY = 0, downX = 0, downY = 0;
-let extraRotX = 0, extraRotY = 0;
-const raycaster = new THREE.Raycaster();
-const ndc = new THREE.Vector2();
-
-canvas.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0) return;
-    dragging = true;
-    lastX = e.clientX; lastY = e.clientY;
-    downX = e.clientX; downY = e.clientY;
-});
-window.addEventListener("pointermove", (e) => {
-    if (!dragging) return;
-    extraRotY += (e.clientX - lastX) * 0.005;
-    extraRotX += (e.clientY - lastY) * 0.005;
-    lastX = e.clientX; lastY = e.clientY;
-});
-window.addEventListener("pointerup", (e) => {
-    if (!dragging) return;
-    dragging = false;
-    if (e.target === canvas && Math.hypot(e.clientX - downX, e.clientY - downY) < 5) {
-        ndc.x = (e.clientX / innerWidth) * 2 - 1;
-        ndc.y = -(e.clientY / innerHeight) * 2 + 1;
-        raycaster.setFromCamera(ndc, camera);
-        if (raycaster.intersectObject(cube, false).length > 0 && typeof jsppOnClick === "function") {
-            try { jsppOnClick(); } catch (err) { console.error("onClick:", err); }
-        }
-    }
-});
-canvas.addEventListener("wheel", (e) => {
+document.getElementById("addr-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    const r = camera.position.length();
-    const nr = Math.max(2.5, Math.min(12, r + e.deltaY * 0.01));
-    camera.position.multiplyScalar(nr / r);
-}, { passive: false });
-
-addEventListener("resize", () => {
-    camera.aspect = innerWidth / innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth, innerHeight, false);
+    openUrl(addrEl.value);
+});
+document.getElementById("btn-system").addEventListener("click", () => {
+    openUrl(addrEl.value, { system: true });
+});
+document.getElementById("tile-browser").addEventListener("click", () => {
+    const u = prompt("URL to open in a new ZeroEngine browser window:", "https://stefandjurkic.github.io/zeroengine/");
+    if (u) openUrl(u);
+});
+document.getElementById("link-repo").addEventListener("click", (e) => {
+    e.preventDefault();
+    openUrl("https://github.com/StefanDjurkic/zeroengine", { system: true });
 });
 
-let last = performance.now();
-bootEl.classList.add("hidden");
-setTimeout(() => bootEl.remove(), 500);
-
-function frame(now) {
-    const dt = Math.min(0.05, (now - last) / 1000);
-    last = now;
-    if (typeof jsppTick === "function") {
-        try { jsppTick(now / 1000, dt); } catch (err) { console.error("tick:", err); jsppTick = null; }
+// ---- bridge status ----
+async function refreshBridge() {
+    const msgEl  = document.getElementById("bridge-msg");
+    const chipEl = document.getElementById("chip-bridge");
+    const jsEl   = document.getElementById("bridge-jspp");
+    const cxEl   = document.getElementById("bridge-cxx");
+    chipEl.textContent = "checking"; chipEl.className = "chip";
+    try {
+        let info;
+        if (IS_DESKTOP) {
+            info = await invoke("bridge_info");
+        } else {
+            // Public website: probe the local HTTP bridge (the desktop app
+            // binds 127.0.0.1:17849 and allow-lists this page's origin).
+            const ctl = new AbortController();
+            const to = setTimeout(() => ctl.abort(), 1500);
+            const res = await fetch(BRIDGE_HTTP + "/info", { signal: ctl.signal });
+            clearTimeout(to);
+            if (!res.ok) throw new Error("HTTP " + res.status);
+            info = await res.json();
+        }
+        jsEl.innerHTML = "jspp: <b>" + (info.has_jspp ? (info.jspp_path || "bundled") : "missing") + "</b>";
+        cxEl.innerHTML = "compiler: <b>" + (info.has_cxx ? (info.cxx_kind + (info.cxx_path ? " (" + info.cxx_path + ")" : "")) : "missing") + "</b>";
+        const prefix = IS_DESKTOP ? "" : "Engine connected on " + BRIDGE_HTTP + ". ";
+        if (info.has_jspp && info.has_cxx) {
+            msgEl.textContent = prefix + "Ready. Your JSPP gets compiled to C++ and run as a native binary on this machine.";
+            chipEl.textContent = IS_DESKTOP ? "online" : "engine connected"; chipEl.className = "chip ok";
+        } else if (!info.has_jspp && !info.has_cxx) {
+            msgEl.textContent = "Missing both 'jspp' and a C++ compiler. Add them to PATH or bundle jspp next to this app.";
+            chipEl.textContent = "missing tools"; chipEl.className = "chip err";
+        } else if (!info.has_jspp) {
+            msgEl.textContent = "C++ compiler OK, but 'jspp' was not found. Place it next to ZeroEngine.exe or on PATH.";
+            chipEl.textContent = "no jspp"; chipEl.className = "chip warn";
+        } else {
+            msgEl.textContent = "JSPP OK, but no C++ compiler on PATH. Install g++/clang++/MSVC to enable native runs.";
+            chipEl.textContent = "no compiler"; chipEl.className = "chip warn";
+        }
+    } catch (err) {
+        if (!IS_DESKTOP) {
+            msgEl.innerHTML = "No local engine detected. Download the <b>ZeroEngine desktop app</b> and launch it \u2014 this page will light up and JSPP will run as real native C++.";
+            chipEl.textContent = "engine offline"; chipEl.className = "chip warn";
+        } else {
+            msgEl.textContent = "bridge_info failed: " + (err?.message || err);
+            chipEl.textContent = "error"; chipEl.className = "chip err";
+        }
     }
-    cube.rotation.x += extraRotX; extraRotX = 0;
-    cube.rotation.y += extraRotY; extraRotY = 0;
-    renderer.render(scene, camera);
-    requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
+document.getElementById("btn-rescan").addEventListener("click", refreshBridge);
+document.getElementById("tile-bridge").addEventListener("click", refreshBridge);
+refreshBridge();
+// On the public website, silently re-probe so the badge lights up the moment
+// the user launches the desktop app (or goes away if they quit it).
+if (!IS_DESKTOP) setInterval(refreshBridge, 5000);
+
+// ---- .zeroapp gallery ----
+// Bundled sample apps. Each entry is effectively a zeroapp.json + source
+// shipped inline with the shell so the gallery works without the filesystem.
+// Clicking a sample stashes the same shape that load_zeroapp returns from
+// disk, so the Playground handoff is identical.
+const SAMPLE_APPS = [
+    {
+        key: "bouncy",
+        icon: "[B]",
+        name: "Bouncy Balls",
+        description: "24 colored balls bouncing inside a 640x520 box with dt-based physics.",
+        mode: "2d",
+        source:
+`let N = 24;
+let balls = [];
+for (let i = 0; i < N; i = i + 1) {
+    balls.push({
+        x:  40 + rand() * 560,
+        y:  40 + rand() * 440,
+        vx: -140 + rand() * 280,
+        vy: -140 + rand() * 280,
+        r:  10 + rand() * 14,
+        cr: randInt(120, 255),
+        cg: randInt(120, 255),
+        cb: randInt(120, 255)
+    });
+}
+let lastT = 0.0;
+function tick(t) {
+    let dt = t - lastT;
+    if (dt < 0.0) { dt = 0.0; }
+    if (dt > 0.1) { dt = 0.1; }
+    lastT = t;
+    clear(12, 18, 28);
+    for (let i = 0; i < N; i = i + 1) {
+        let b = balls[i];
+        b.x = b.x + b.vx * dt;
+        b.y = b.y + b.vy * dt;
+        if (b.x < b.r)         { b.x = b.r;         b.vx = -b.vx; }
+        if (b.x > 640.0 - b.r) { b.x = 640.0 - b.r; b.vx = -b.vx; }
+        if (b.y < b.r)         { b.y = b.r;         b.vy = -b.vy; }
+        if (b.y > 520.0 - b.r) { b.y = 520.0 - b.r; b.vy = -b.vy; }
+        drawCircle(b.x, b.y, b.r, b.cr, b.cg, b.cb);
+    }
+}
+print("bouncy balls armed:", N);
+`
+    },
+    {
+        key: "particles",
+        icon: "[P]",
+        name: "Particle Field",
+        description: "400 particles on rotating, pulsing orbits. Heavy per-frame workload — watch C++ chew through it.",
+        mode: "2d",
+        source:
+`let N = 400;
+let ps = [];
+for (let i = 0; i < N; i = i + 1) {
+    ps.push({
+        r:  80 + rand() * 220,
+        a:  rand() * 6.28,
+        sp: 0.2 + rand() * 1.4,
+        ph: rand() * 6.28,
+        rad: 2 + rand() * 3.5,
+        cr: randInt(120, 255),
+        cg: randInt(120, 255),
+        cb: randInt(120, 255)
+    });
+}
+function tick(t) {
+    clear(6, 9, 18);
+    for (let i = 0; i < N; i = i + 1) {
+        let p = ps[i];
+        let a = p.a + t * p.sp;
+        let pulse = 1.0 + Math.sin(t * 2.0 + p.ph) * 0.25;
+        let x = 320 + Math.cos(a) * p.r * pulse;
+        let y = 260 + Math.sin(a) * p.r * pulse;
+        drawCircle(x, y, p.rad, p.cr, p.cg, p.cb);
+    }
+}
+print("particles armed:", N);
+`
+    },
+    {
+        key: "starfield",
+        icon: "[S]",
+        name: "Starfield",
+        description: "Warp-speed starfield: 300 stars streaking outward from the center.",
+        mode: "2d",
+        source:
+`let N = 300;
+let stars = [];
+for (let i = 0; i < N; i = i + 1) {
+    stars.push({
+        a: rand() * 6.2831,
+        r: rand() * 320.0,
+        sp: 60.0 + rand() * 220.0,
+        br: randInt(140, 255)
+    });
+}
+function tick(t) {
+    clear(2, 4, 10);
+    for (let i = 0; i < N; i = i + 1) {
+        let s = stars[i];
+        s.r = s.r + s.sp * 0.016;
+        if (s.r > 340.0) { s.r = 4.0 + rand() * 20.0; s.a = rand() * 6.2831; }
+        let x = 320.0 + Math.cos(s.a) * s.r;
+        let y = 260.0 + Math.sin(s.a) * s.r;
+        let sz = 0.5 + s.r * 0.008;
+        drawCircle(x, y, sz, s.br, s.br, s.br);
+    }
+}
+print("starfield armed:", N);
+`
+    },
+    {
+        key: "pendulum",
+        icon: "[T]",
+        name: "Pendulum Clock",
+        description: "A swinging double-pendulum with a trailing comet of past positions.",
+        mode: "2d",
+        source:
+`let L1 = 140.0;
+let L2 = 120.0;
+let trailN = 90;
+let trail = [];
+for (let i = 0; i < trailN; i = i + 1) { trail.push({ x: 320.0, y: 260.0 }); }
+let head = 0;
+function tick(t) {
+    clear(8, 12, 22);
+    let a1 = Math.sin(t * 1.3) * 1.2;
+    let a2 = Math.sin(t * 1.9 + 0.7) * 1.8;
+    let x1 = 320.0 + Math.sin(a1) * L1;
+    let y1 = 180.0 + Math.cos(a1) * L1;
+    let x2 = x1    + Math.sin(a1 + a2) * L2;
+    let y2 = y1    + Math.cos(a1 + a2) * L2;
+    trail[head].x = x2;
+    trail[head].y = y2;
+    head = head + 1;
+    if (head >= trailN) { head = 0; }
+    for (let i = 0; i < trailN; i = i + 1) {
+        let p = trail[i];
+        let age = i - head;
+        if (age < 0) { age = age + trailN; }
+        let fade = age * 2;
+        drawCircle(p.x, p.y, 2.0, 120 + fade, 200, 255 - fade);
+    }
+    drawLine(320.0, 180.0, x1, y1, 180, 200, 220);
+    drawLine(x1, y1, x2, y2, 180, 200, 220);
+    drawCircle(320.0, 180.0, 5.0, 220, 220, 220);
+    drawCircle(x1, y1, 8.0, 34, 211, 238);
+    drawCircle(x2, y2, 12.0, 167, 139, 250);
+}
+print("pendulum armed");
+`
+    },
+    {
+        key: "ripples",
+        icon: "[R]",
+        name: "Ripples",
+        description: "Concentric ripples expanding from randomly seeded points.",
+        mode: "2d",
+        source:
+`let NR = 8;
+let ripples = [];
+for (let i = 0; i < NR; i = i + 1) {
+    ripples.push({
+        x: 80.0 + rand() * 480.0,
+        y: 60.0 + rand() * 400.0,
+        born: rand() * -2.0,
+        cr: randInt(120, 255),
+        cg: randInt(120, 255),
+        cb: randInt(120, 255)
+    });
+}
+function tick(t) {
+    clear(4, 6, 14);
+    for (let i = 0; i < NR; i = i + 1) {
+        let r = ripples[i];
+        let age = t - r.born;
+        if (age > 3.0) {
+            r.x = 80.0 + rand() * 480.0;
+            r.y = 60.0 + rand() * 400.0;
+            r.born = t;
+            r.cr = randInt(120, 255);
+            r.cg = randInt(120, 255);
+            r.cb = randInt(120, 255);
+            age = 0.0;
+        }
+        let rad = age * 120.0;
+        drawCircle(r.x, r.y, rad,        r.cr, r.cg, r.cb);
+        drawCircle(r.x, r.y, rad * 0.7,  r.cr, r.cg, r.cb);
+        drawCircle(r.x, r.y, rad * 0.45, r.cr, r.cg, r.cb);
+    }
+}
+print("ripples armed:", NR);
+`
+    },
+    {
+        key: "cube3d",
+        icon: "[3]",
+        name: "3D Rotating Cube",
+        description: "Drives a real Three.js cube via setRotation / setFaceColor. Pure JSPP, no JS.",
+        mode: "3d",
+        source:
+`function tick(t) {
+    setRotation(t * 0.7, t * 1.1);
+    setScale(1.0 + Math.sin(t * 2.0) * 0.1);
+    for (let i = 0; i < 6; i = i + 1) {
+        let hue = t + i * 1.05;
+        let r = 128 + Math.sin(hue)        * 120;
+        let g = 128 + Math.sin(hue + 2.09) * 120;
+        let b = 128 + Math.sin(hue + 4.18) * 120;
+        setFaceColor(i, r, g, b);
+    }
+}
+print("cube armed");
+`
+    }
+];
+
+function openApp(app) {
+    const payload = {
+        name: app.name,
+        version: app.version || "0.1.0",
+        description: app.description,
+        author: "ZeroEngine Samples",
+        mode: app.mode,
+        entry: app.key + ".jspp",
+        source: app.source,
+        root: "<built-in sample>",
+        loadedAt: Date.now(),
+    };
+    try { sessionStorage.setItem("zeroengine.pending-app", JSON.stringify(payload)); } catch {}
+    window.location.href = "jspp.html";
+}
+
+const appsModal = document.getElementById("apps-modal");
+const sampleGrid = document.getElementById("sample-grid");
+for (const app of SAMPLE_APPS) {
+    const el = document.createElement("div");
+    el.className = "sample";
+    el.innerHTML =
+        `<div class="ic">${app.icon}</div>` +
+        `<div class="nm">${app.name}</div>` +
+        `<div class="dc">${app.description}</div>` +
+        `<div class="meta"><span class="tag ${app.mode === "3d" ? "c3d" : "c2d"}">${app.mode === "3d" ? "3D" : "2D canvas"}</span></div>`;
+    el.addEventListener("click", () => openApp(app));
+    sampleGrid.appendChild(el);
+}
+
+function openAppsModal() { appsModal.classList.add("open"); }
+function closeAppsModal() { appsModal.classList.remove("open"); }
+document.getElementById("tile-apps").addEventListener("click", openAppsModal);
+document.getElementById("apps-close").addEventListener("click", closeAppsModal);
+appsModal.addEventListener("click", (e) => { if (e.target === appsModal) closeAppsModal(); });
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && appsModal.classList.contains("open")) closeAppsModal();
+});
+
+// "Load .zeroapp from disk" - still supported, now a secondary action.
+async function loadZeroApp() {
+    if (!invoke) { alert("Tauri bridge unavailable."); return; }
+    try {
+        const { open } = tauri.dialog || {};
+        if (!open) { alert("File dialog unavailable."); return; }
+        const picked = await open({
+            title: "Select a .zeroapp bundle",
+            filters: [{ name: "ZeroApp manifest", extensions: ["json"] }],
+            multiple: false,
+            directory: false,
+        });
+        if (!picked || typeof picked !== "string") return;
+        const app = await invoke("load_zeroapp", { path: picked });
+        sessionStorage.setItem("zeroengine.pending-app", JSON.stringify({
+            name: app.name,
+            version: app.version,
+            description: app.description,
+            author: app.author,
+            mode: app.mode,
+            entry: app.entry,
+            source: app.source,
+            root: app.root,
+            loadedAt: Date.now(),
+        }));
+        window.location.href = "jspp.html";
+    } catch (err) {
+        alert("Could not load .zeroapp: " + (err?.message || err));
+    }
+}
+document.getElementById("btn-load-from-disk").addEventListener("click", loadZeroApp);
+
+// ---- native menu -> frontend wiring ----
+if (listen) {
+    listen("menu://navigate", (e) => {
+        if (typeof e.payload === "string" && e.payload) {
+            window.location.href = e.payload;
+        }
+    });
+    listen("menu://new-browser", () => {
+        const u = prompt("URL to open in a new ZeroEngine browser window:", addrEl.value || "https://stefandjurkic.github.io/zeroengine/");
+        if (u) openUrl(u);
+    });
+    listen("menu://about", () => {
+        alert(
+            "ZeroEngine v0.2.0\n\n" +
+            "Desktop shell + browser + JSPP playground + native C++ compile bridge.\n\n" +
+            "github.com/StefanDjurkic/zeroengine"
+        );
+    });
+    listen("menu://open-url", (e) => {
+        if (typeof e.payload === "string") openUrl(e.payload, { system: true });
+    });
+}
 </script>
 </body>
 </html>
