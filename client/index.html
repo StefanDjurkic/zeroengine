@@ -104,6 +104,7 @@
             <h1><span class="j">JSPP</span> <span class="x">x</span> ZeroEngine</h1>
         </div>
         <p class="tag">live 3D demo - a JSPP script drives this cube in real time</p>
+        <p id="bridge-status" class="line" style="display:none;padding:8px 10px;border-radius:8px;border:1px solid #065f46;background:rgba(6,28,18,.7);color:#bbf7d0;font-family:Consolas,Monaco,monospace;font-size:12px;">checking desktop bridge...</p>
         <p class="line">The cube's rotation, scale, colors, and click behavior are written in <b>JSPP</b>. A reference interpreter (JavaScript) runs that JSPP source in your browser and calls into <b>Three.js</b> to render. You are watching JSPP semantics executing, not canned animation.</p>
         <p class="line">JSPP also has a real <b>C++20 compiler</b>. Install <b>ZeroEngine Desktop</b> and the <a href="./jspp.html" style="color:var(--accent)">playground</a>'s <code>Run as compiled C++</code> button will send whatever you type through the JSPP compiler, build the resulting C++ with your local toolchain, and execute the native binary - all without leaving the app. Without the desktop install, the playground still runs JSPP in-browser via the JS reference interpreter.</p>
         <div class="btns">
@@ -114,6 +115,42 @@
         </div>
     </div>
 </div>
+
+<script>
+// Bridge detection: if ZeroEngine Desktop is running on this machine, its
+// HTTP server on 127.0.0.1:17849 will respond to /info. The landing page
+// surfaces that so the visitor knows C++ compiles are available right now.
+(function () {
+    var el = document.getElementById("bridge-status");
+    if (!el) return;
+    el.style.display = "block";
+    fetch("http://127.0.0.1:17849/info", { mode: "cors" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (info) {
+            if (!info) throw new Error("no info");
+            var ok = info.has_jspp && info.has_cxx;
+            if (ok) {
+                el.style.borderColor = "#10b981";
+                el.style.background = "rgba(6,44,28,.85)";
+                el.innerHTML = '[bridge] <b style="color:#6ee7b7;">desktop connected</b> - ' +
+                    (info.cxx_kind || "native") + ' detected on 127.0.0.1:17849. ' +
+                    'Click <a href="./jspp.html" style="color:#22d3ee;">Open Playground</a> and hit ' +
+                    '<kbd style="background:#0b0f17;border:1px solid #2a3347;padding:1px 5px;border-radius:4px;">Ctrl+Shift+Enter</kbd> ' +
+                    'to compile and run native C++.';
+            } else {
+                throw new Error("missing toolchain");
+            }
+        })
+        .catch(function () {
+            el.style.borderColor = "#374151";
+            el.style.background = "rgba(17,22,35,.7)";
+            el.style.color = "#9ca3af";
+            el.innerHTML = '[bridge] no desktop detected. ' +
+                '<a href="https://github.com/StefanDjurkic/zeroengine/releases/latest" target="_blank" rel="noopener" style="color:#22d3ee;">Install ZeroEngine Desktop</a> ' +
+                'to unlock native C++ compiling from this web page.';
+        });
+})();
+</script>
 
 <div id="hint">click the cube to change colors - drag to rotate - scroll to zoom</div>
 <div id="credit">Built by <a href="https://github.com/StefanDjurkic" target="_blank" rel="noopener">Stefan Djurkic</a></div>
