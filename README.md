@@ -8,12 +8,7 @@
 
 **🖥️ Desktop app:** [Download ZeroEngine Desktop](https://github.com/StefanDjurkic/zeroengine/releases/latest) — a Tauri shell that *is* a home page, a browser, a JSPP playground, and a local compile bridge. Inside the desktop app, the playground's "Run as compiled C++" button sends your editor source through the [JSPP](https://github.com/StefanDjurkic/jspp) compiler, builds the resulting C++ with your local toolchain (`g++` / `clang++` / `cl`), and executes the native binary. Real C++, really running, from whatever you just typed.
 
-## Why JSPP?
-
-AI writes better JavaScript than C++. There's more JS in every training set, the syntax is more regular, and there are fewer footguns — no manual memory management, no header files, no template metaprogramming. JSPP exploits that gap: give the AI a language it already knows how to write, and let the compiler handle the hard translation to native code. The AI stays in its comfort zone. You still get C++ speed.
-
-## What this app does today
-
+## What this app does 
 ZeroEngine is a single **page-and-desktop** experience wired around the JSPP language. The *same* HTML home page is served both by GitHub Pages and by the Tauri desktop shell:
 
 - **Home page (`client/index.html`)** — a launcher grid with four tiles: Playground, Browser, Compile Bridge, and ZeroEngine Apps. The Compile Bridge tile auto-probes `http://127.0.0.1:17849/info` every few seconds, so the **public website lights up live when the desktop engine is running on your machine** and goes dark when it quits.
